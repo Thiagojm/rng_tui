@@ -5,7 +5,7 @@ These tests will be skipped if RDSEED is not available (older CPUs).
 """
 
 import pytest
-from rng_devices.intel_seed import (
+from lib.rng_devices.intel_seed import (
     is_device_available,
     get_bytes,
     get_bits,

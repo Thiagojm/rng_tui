@@ -27,13 +27,13 @@ def skip_if_no_device(request):
         # Import the device module dynamically
         try:
             if device_name == "pseudo_rng":
-                from rng_devices.pseudo_rng import is_device_available
+                from lib.rng_devices.pseudo_rng import is_device_available
             elif device_name == "truerng":
-                from rng_devices.truerng import is_device_available
+                from lib.rng_devices.truerng import is_device_available
             elif device_name == "bitbabbler_rng":
-                from rng_devices.bitbabbler_rng import is_device_available
+                from lib.rng_devices.bitbabbler_rng import is_device_available
             elif device_name == "intel_seed":
-                from rng_devices.intel_seed import is_device_available
+                from lib.rng_devices.intel_seed import is_device_available
             else:
                 pytest.fail(f"Unknown device: {device_name}")
 

@@ -141,10 +141,10 @@ Manual test scripts are provided for each device:
 
 ```bash
 # Test BitBabbler
-python rng_devices/test_bit.py
+python tests/manual/test_bit_manual.py
 
 # Test TrueRNG
-python rng_devices/test_true.py
+python tests/manual/test_true_manual.py
 ```
 
 ## 🛠️ Development
@@ -173,12 +173,17 @@ rng_tui/
 ├── rng_tui.py             # Main TUI application
 ├── style.css              # Textual styling
 ├── pyproject.toml         # Project configuration
-├── rng_devices/           # RNG device implementations
+├── lib/                   # Library modules
 │   ├── __init__.py
-│   ├── pseudo_rng/        # Software fallback
-│   ├── truerng/           # TrueRNG hardware
-│   ├── bitbabbler_rng/    # BitBabbler hardware
-│   └── intel_seed/        # Intel RDSEED CPU
+│   └── rng_devices/       # RNG device implementations
+│       ├── __init__.py
+│       ├── pseudo_rng/    # Software fallback
+│       ├── truerng/       # TrueRNG hardware
+│       ├── bitbabbler_rng/# BitBabbler hardware
+│       └── intel_seed/    # Intel RDSEED CPU
+├── tests/                 # Automated test suite
+│   ├── conftest.py        # Test configuration
+│   └── test_*.py          # Test files
 └── AGENTS.md              # Developer guidelines
 ```
 
@@ -187,7 +192,7 @@ rng_tui/
 All RNG devices implement a consistent API:
 
 ```python
-from rng_devices import pseudo_rng
+from lib.rng_devices import pseudo_rng
 
 # Check availability
 if pseudo_rng.is_device_available():

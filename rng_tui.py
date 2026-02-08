@@ -35,7 +35,7 @@ from textual.widgets import (
 )
 
 # Import RNG modules
-from rng_devices import intel_seed, truerng, bitbabbler_rng, pseudo_rng
+from lib.rng_devices import intel_seed, truerng, bitbabbler_rng, pseudo_rng
 
 
 # Device registry
@@ -351,7 +351,7 @@ class RNGCollectorApp(App):
                 self.output_file = output_path
             else:
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                self.output_file = f"./rng_data_{timestamp}.csv"
+                self.output_file = f"data/raw/rng_data_{timestamp}.csv"
 
             # Open CSV file
             self.csv_file = open(self.output_file, "w", newline="")

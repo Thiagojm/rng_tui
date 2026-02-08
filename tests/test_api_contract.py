@@ -6,7 +6,7 @@ Ensures all device modules expose the same interface and behave consistently.
 
 import pytest
 import inspect
-from rng_devices import pseudo_rng, intel_seed, truerng, bitbabbler_rng
+from lib.rng_devices import pseudo_rng, intel_seed, truerng, bitbabbler_rng
 
 
 class TestAPIContract:

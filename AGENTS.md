@@ -222,13 +222,14 @@ rng_tui/
 ├── style.css           # Textual CSS styles
 ├── pyproject.toml      # Project configuration
 ├── uv.lock             # Lockfile
-├── rng_devices/        # RNG device implementations
+├── lib/                # Library modules
 │   ├── __init__.py
-│   ├── pseudo_rng/
-│   ├── truerng/
-│   ├── bitbabbler_rng/
-│   ├── intel_seed/
-│   └── test_*.py       # Manual test scripts (deprecated, use tests/)
+│   └── rng_devices/    # RNG device implementations
+│       ├── __init__.py
+│       ├── pseudo_rng/
+│       ├── truerng/
+│       ├── bitbabbler_rng/
+│       └── intel_seed/
 ├── tests/              # Automated test suite
 │   ├── __init__.py
 │   ├── conftest.py     # Pytest configuration and fixtures
@@ -237,6 +238,9 @@ rng_tui/
 │       ├── __init__.py
 │       ├── test_bit_manual.py
 │       └── test_true_manual.py
+├── data/               # Data directories
+│   ├── processed/      # Processed statistical analysis
+│   └── raw/            # Raw CSV data from TUI
 └── .gitignore
 ```
 
