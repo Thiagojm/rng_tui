@@ -37,6 +37,9 @@ from textual.widgets import (
 # Import RNG modules
 from lib.rng_devices import bitbabbler_rng, intel_seed, pseudo_rng, truerng
 
+# Import services
+from lib.services import filenames
+
 # Device registry
 DEVICES = {
     "intel_seed": {"name": "Intel RDSEED", "module": intel_seed, "type": "Hardware"},
@@ -143,7 +146,7 @@ class ConfigPanel(Static):
             yield Input(
                 value="",
                 id="output_input",
-                placeholder="./rng_data_YYYYMMDD_HHMMSS.csv",
+                placeholder="YYYYMMDDTHHMMSS_intel_s2048_i1.csv",
             )
 
     def on_select_changed(self, event: Select.Changed) -> None:
@@ -349,8 +352,23 @@ class RNGCollectorApp(App):
             if output_path:
                 self.output_file = output_path
             else:
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                self.output_file = f"data/raw/rng_data_{timestamp}.csv"
+                # Map device key to device code
+                device_code_map = {
+                    "bitbabbler_rng": "bitb",
+                    "truerng": "trng",
+                    "intel_seed": "intel",
+                    "pseudo_rng": "pseudo",
+                }
+                device_code = device_code_map.get(device_key, device_key)
+
+                # Generate filename using new convention
+                filename_stem = filenames.format_capture_name(
+                    device=device_code,
+                    bits=bits,
+                    interval=int(self.frequency),
+                    folds=self.folds if device_key == "bitbabbler_rng" else None,
+                )
+                self.output_file = f"data/raw/{filename_stem}.csv"
 
             # Open CSV file
             self.csv_file = open(self.output_file, "w", newline="")
