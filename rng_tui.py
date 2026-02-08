@@ -19,12 +19,15 @@ import asyncio
 import os
 from datetime import datetime
 
+import numpy as np
+import pandas as pd
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.reactive import reactive
 from textual.widgets import (
     Button,
     DataTable,
+    DirectoryTree,
     Footer,
     Header,
     Input,
@@ -32,6 +35,8 @@ from textual.widgets import (
     ProgressBar,
     Select,
     Static,
+    TabbedContent,
+    TabPane,
 )
 
 # Import RNG modules
@@ -39,7 +44,11 @@ from lib.rng_devices import bitbabbler_rng, intel_seed, pseudo_rng, truerng
 
 # Import services
 from lib.services import filenames
-from lib.services.storage import write_csv_count
+from lib.services.storage import (
+    read_csv_counts,
+    write_csv_count,
+    write_enhanced_excel,
+)
 
 # Device registry
 DEVICES = {
@@ -198,6 +207,69 @@ class DataTablePanel(Static):
         table.scroll_end()
 
 
+class AnalysisPanel(Static):
+    """Panel for statistical analysis and Excel export."""
+
+    def compose(self) -> ComposeResult:
+        with Horizontal():
+            # Left: File Browser
+            with Vertical(classes="file-browser-panel"):
+                yield Label("📁 Select CSV File", classes="title")
+                yield DirectoryTree("data/raw", id="file_tree")
+                yield Button("🔄 Refresh", id="refresh_tree_btn", variant="default")
+
+            # Right: Analysis Controls & Results
+            with Vertical(classes="analysis-content"):
+                yield Label("⚙️ Configuration", classes="title")
+
+                # Selected file display
+                with Horizontal():
+                    yield Label("File:", classes="field-label")
+                    yield Input(
+                        value="",
+                        id="analysis_file_input",
+                        placeholder="Select a file from the tree...",
+                        disabled=True,
+                    )
+
+                # Parameters
+                with Horizontal():
+                    yield Label("Bits:", classes="field-label")
+                    yield Input(
+                        value="2048",
+                        id="analysis_bits_input",
+                        type="integer",
+                        classes="short-input",
+                    )
+                    yield Label("Interval (s):", classes="field-label")
+                    yield Input(
+                        value="1",
+                        id="analysis_interval_input",
+                        type="integer",
+                        classes="short-input",
+                    )
+
+                # Action Buttons
+                with Horizontal(classes="button-row"):
+                    yield Button("🔍 Analyze", id="analyze_btn", variant="primary")
+                    yield Button(
+                        "📊 Export Excel",
+                        id="export_btn",
+                        variant="success",
+                        disabled=True,
+                    )
+
+                # Validation message
+                yield Static("", id="validation_message")
+
+                # Compact Statistics Summary
+                yield Label("📊 Statistics", classes="section-title")
+                yield Static(
+                    "No data analyzed yet. Select a file and click Analyze.",
+                    id="stats_display",
+                )
+
+
 class RNGCollectorApp(App):
     """Main TUI application for RNG data collection."""
 
@@ -226,17 +298,27 @@ class RNGCollectorApp(App):
         self.total_ones = 0
         self.start_time = None
 
+        # Analysis state
+        self.analysis_df = None
+        self.selected_file_path = None
+
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
 
-        # Side-by-side layout: ConfigPanel (left) + StatsPanel (right with buttons)
-        with Horizontal(classes="top-container"):
-            yield ConfigPanel()
-            yield StatsPanel()
+        with TabbedContent(initial="collect"):
+            # Tab 1: Data Collection (existing functionality)
+            with TabPane("Collect", id="collect"):
+                with Horizontal(classes="top-container"):
+                    yield ConfigPanel()
+                    yield StatsPanel()
 
-        # Bottom container for DataTablePanel (takes remaining space)
-        with Vertical(classes="bottom-container"):
-            yield DataTablePanel()
+                # Bottom container for DataTablePanel (takes remaining space)
+                with Vertical(classes="bottom-container"):
+                    yield DataTablePanel()
+
+            # Tab 2: Statistical Analysis (new functionality)
+            with TabPane("Analysis", id="analysis"):
+                yield AnalysisPanel()
 
         yield Footer()
 
@@ -244,6 +326,32 @@ class RNGCollectorApp(App):
         """Called when app is mounted."""
         self.title = "RNG Data Collector TUI"
         self.sub_title = "Hardware & Software RNG Data Collection"
+
+    def on_directory_tree_file_selected(
+        self, event: DirectoryTree.FileSelected
+    ) -> None:
+        """Handle file selection from DirectoryTree."""
+        self.selected_file_path = str(event.path)
+
+        # Update input field
+        panel = self.query_one(AnalysisPanel)
+        panel.query_one("#analysis_file_input", Input).value = self.selected_file_path
+
+        # Validate file
+        self.validate_selected_file()
+
+        # Try auto-detect parameters from filename
+        try:
+            bits = filenames.parse_bits(self.selected_file_path)
+            interval = filenames.parse_interval(self.selected_file_path)
+            panel.query_one("#analysis_bits_input", Input).value = str(bits)
+            panel.query_one("#analysis_interval_input", Input).value = str(interval)
+            self.notify(
+                f"Auto-detected: {bits} bits, {interval}s interval",
+                severity="information",
+            )
+        except ValueError:
+            pass
 
     async def on_button_pressed(self, event: Button.Pressed):
         """Handle button presses."""
@@ -255,6 +363,14 @@ class RNGCollectorApp(App):
             await self.action_pause()
         elif button_id == "stop_btn":
             await self.action_stop()
+        elif button_id == "refresh_tree_btn":
+            tree = self.query_one("#file_tree", DirectoryTree)
+            tree.reload()
+            self.notify("File tree refreshed", severity="information")
+        elif button_id == "analyze_btn":
+            await self.action_analyze()
+        elif button_id == "export_btn":
+            await self.action_export_excel()
 
     async def action_start(self):
         """Start data collection."""
@@ -459,6 +575,171 @@ class RNGCollectorApp(App):
             f"Collection stopped. Data saved to {self.output_file}",
             severity="information",
         )
+
+    def validate_selected_file(self) -> bool:
+        """Validate selected file format and existence."""
+        panel = self.query_one(AnalysisPanel)
+        msg = panel.query_one("#validation_message", Static)
+
+        if not self.selected_file_path:
+            msg.update("❌ No file selected")
+            return False
+
+        if not os.path.exists(self.selected_file_path):
+            msg.update("❌ File does not exist")
+            return False
+
+        if not self.selected_file_path.endswith(".csv"):
+            msg.update("❌ Selected file must be a CSV file")
+            return False
+
+        # Check if file is readable and has valid format
+        try:
+            with open(self.selected_file_path) as f:
+                first_line = f.readline().strip()
+                # Expect format: YYYYMMDDTHHMMSS,count
+                parts = first_line.split(",")
+                if len(parts) != 2:
+                    msg.update("❌ Invalid CSV format (expected: time,count)")
+                    return False
+                # Try parsing count as int
+                int(parts[1])
+        except Exception as e:
+            msg.update(f"❌ File validation failed: {e}")
+            return False
+
+        msg.update("✅ File valid")
+        return True
+
+    async def action_analyze(self):
+        """Perform statistical analysis on selected file."""
+        if not self.validate_selected_file():
+            return
+
+        panel = self.query_one(AnalysisPanel)
+
+        try:
+            # Get parameters
+            bits = int(panel.query_one("#analysis_bits_input", Input).value)
+
+            # Read CSV
+            self.analysis_df = read_csv_counts(self.selected_file_path)
+
+            # Calculate Z-scores with p-values
+            self.analysis_df = self.add_zscore_with_pvalues(self.analysis_df, bits)
+
+            # Update statistics display
+            self.update_statistics_display(self.analysis_df, bits)
+
+            # Enable export button
+            panel.query_one("#export_btn", Button).disabled = False
+
+            self.notify(
+                f"Analysis complete! {len(self.analysis_df)} samples analyzed.",
+                severity="information",
+            )
+
+        except Exception as e:
+            self.notify(f"Analysis failed: {e}", severity="error")
+
+    def add_zscore_with_pvalues(
+        self, df: pd.DataFrame, block_bits: int
+    ) -> pd.DataFrame:
+        """Add Z-score and p-value calculations."""
+        from scipy.stats import norm
+
+        expected_mean = 0.5 * block_bits
+        expected_std_dev = np.sqrt(block_bits * 0.25)
+
+        # Calculate sample count for each row
+        df["sample_count"] = range(1, len(df) + 1)
+
+        # Cumulative mean
+        df["cumulative_mean"] = df["ones"].expanding().mean()
+
+        # Z-score (standard error decreases with sqrt(n))
+        df["z_test"] = (df["cumulative_mean"] - expected_mean) / (
+            expected_std_dev / np.sqrt(df["sample_count"])
+        )
+
+        # Two-tailed p-value
+        df["p_value"] = 2 * (1 - norm.cdf(np.abs(df["z_test"])))
+
+        return df
+
+    def update_statistics_display(self, df: pd.DataFrame, bits: int):
+        """Calculate and display comprehensive statistics."""
+        stats = self.query_one("#stats_display", Static)
+
+        # Calculate statistics
+        mean_ones = df["ones"].mean()
+        total_samples = len(df)
+
+        # Expected values for binomial distribution
+        expected_mean = 0.5 * bits
+
+        # Z-score statistics
+        z_scores = df["z_test"]
+        max_z = z_scores.abs().max()
+        mean_z = z_scores.mean()
+
+        # Test for randomness (rough check)
+        within_95 = (z_scores.abs() <= 1.96).sum()
+        percent_95 = (within_95 / total_samples) * 100
+
+        # Pass/fail assessment
+        if percent_95 > 90 and max_z < 3:
+            assessment = "✓ PASS"
+        else:
+            assessment = "⚠ REVIEW"
+
+        # Compact statistics display
+        stats.update(
+            f"Samples: {total_samples} | Bits: {bits} | Mean: {mean_ones:.1f} (Exp: {expected_mean:.1f}) | "
+            f"Z-Score: {mean_z:.3f} (max {max_z:.3f}) | 95% CI: {percent_95:.0f}% | {assessment}"
+        )
+
+    async def action_export_excel(self):
+        """Export analyzed data to Excel with detailed error handling."""
+        if self.analysis_df is None or len(self.analysis_df) == 0:
+            self.notify("No data to export. Run analysis first.", severity="warning")
+            return
+
+        if not self.selected_file_path:
+            self.notify("No file selected.", severity="error")
+            return
+
+        panel = self.query_one(AnalysisPanel)
+
+        try:
+            bits = int(panel.query_one("#analysis_bits_input", Input).value)
+            interval = int(panel.query_one("#analysis_interval_input", Input).value)
+
+            self.notify(
+                f"Exporting {len(self.analysis_df)} samples...", severity="information"
+            )
+
+            # Use the function from storage module
+            excel_path = write_enhanced_excel(
+                self.analysis_df, self.selected_file_path, bits, interval
+            )
+
+            self.notify(
+                f"Excel exported successfully!\nSaved to: {excel_path}",
+                severity="information",
+                timeout=5,
+            )
+
+        except ValueError as e:
+            self.notify(f"Invalid parameters: {e}", severity="error")
+        except ImportError as e:
+            self.notify(f"Missing dependency: {e}", severity="error")
+        except Exception as e:
+            import traceback
+
+            error_detail = str(e)[:100]
+            self.notify(f"Export failed: {error_detail}", severity="error", timeout=8)
+            print(f"Excel export error:\n{traceback.format_exc()}")
 
     def _update_buttons(self):
         """Update button states."""

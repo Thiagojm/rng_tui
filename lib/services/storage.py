@@ -11,7 +11,7 @@ from bitstring import BitArray  # type: ignore
 
 def write_csv_count(count: int, filename_stem: str) -> None:
     """Write a count entry to a CSV file.
-    
+
     Args:
         count: Number of '1' bits counted
         filename_stem: Base filename without extension
@@ -19,7 +19,7 @@ def write_csv_count(count: int, filename_stem: str) -> None:
     now = datetime.now().strftime("%Y%m%dT%H%M%S")
     path = f"{filename_stem}.csv"
     try:
-        with open(path, 'a', newline='') as f:
+        with open(path, "a", newline="") as f:
             csv.writer(f).writerow([now, count])
     except OSError as e:
         raise RuntimeError(f"Failed to write CSV count: {e}")
@@ -27,14 +27,14 @@ def write_csv_count(count: int, filename_stem: str) -> None:
 
 def read_bin_counts(file_path: str, block_bits: int) -> pd.DataFrame:
     """Read binary file and count '1' bits per block.
-    
+
     Args:
         file_path: Path to binary file
         block_bits: Number of bits per block (must be divisible by 8)
-        
+
     Returns:
         DataFrame with columns ['samples', 'ones']
-        
+
     Raises:
         ValueError: If block_bits is not divisible by 8
         RuntimeError: If file cannot be read
@@ -44,7 +44,7 @@ def read_bin_counts(file_path: str, block_bits: int) -> pd.DataFrame:
 
     data_list: list[list[int]] = []
     try:
-        with open(file_path, 'rb') as binary_file:
+        with open(file_path, "rb") as binary_file:
             block = 1
             while True:
                 data = binary_file.read(block_bits // 8)
@@ -56,21 +56,21 @@ def read_bin_counts(file_path: str, block_bits: int) -> pd.DataFrame:
     except OSError as e:
         raise RuntimeError(f"Failed to read binary file: {e}")
 
-    return pd.DataFrame(data_list, columns=['samples', 'ones'])
+    return pd.DataFrame(data_list, columns=["samples", "ones"])
 
 
 def read_csv_counts(file_path: str) -> pd.DataFrame:
     """Read CSV file with time and count data.
-    
+
     Args:
         file_path: Path to CSV file
-        
+
     Returns:
         DataFrame with columns ['time', 'ones'] where time is formatted as HH:MM:SS
     """
     try:
-        df = pd.read_csv(file_path, header=None, names=['time', 'ones'])
-        df['time'] = pd.to_datetime(df['time']).dt.strftime('%H:%M:%S')
+        df = pd.read_csv(file_path, header=None, names=["time", "ones"])
+        df["time"] = pd.to_datetime(df["time"]).dt.strftime("%H:%M:%S")
         return df
     except (OSError, pd.errors.EmptyDataError) as e:
         raise RuntimeError(f"Failed to read CSV file: {e}")
@@ -78,14 +78,14 @@ def read_csv_counts(file_path: str) -> pd.DataFrame:
 
 def add_zscore(df: pd.DataFrame, block_bits: int) -> pd.DataFrame:
     """Add Z-score calculation to DataFrame.
-    
+
     Args:
         df: DataFrame with 'ones' column
         block_bits: Number of bits per block for statistical calculation
-        
+
     Returns:
         DataFrame with added 'cumulative_mean' and 'z_test' columns
-        
+
     Raises:
         ValueError: If block_bits is not positive
     """
@@ -94,23 +94,27 @@ def add_zscore(df: pd.DataFrame, block_bits: int) -> pd.DataFrame:
 
     expected_mean = 0.5 * block_bits
     expected_std_dev = np.sqrt(block_bits * 0.5 * 0.5)
-    df['cumulative_mean'] = df['ones'].expanding().mean()
-    df['z_test'] = (df['cumulative_mean'] - expected_mean) / (expected_std_dev / np.sqrt(df.index + 1))
+    df["cumulative_mean"] = df["ones"].expanding().mean()
+    df["z_test"] = (df["cumulative_mean"] - expected_mean) / (
+        expected_std_dev / np.sqrt(df.index + 1)
+    )
     return df
 
 
-def write_excel_with_chart(df: pd.DataFrame, file_path: str, block_bits: int, interval: int) -> str:
+def write_excel_with_chart(
+    df: pd.DataFrame, file_path: str, block_bits: int, interval: int
+) -> str:
     """Write DataFrame to Excel file with Z-score chart.
-    
+
     Args:
         df: DataFrame with Z-score data
         file_path: Input file path (used to generate output path)
         block_bits: Number of bits per block
         interval: Sample interval in seconds
-        
+
     Returns:
         Path to created Excel file
-        
+
     Raises:
         ValueError: If parameters are invalid
         RuntimeError: If Excel file cannot be created
@@ -118,29 +122,34 @@ def write_excel_with_chart(df: pd.DataFrame, file_path: str, block_bits: int, in
     if block_bits <= 0 or interval <= 0:
         raise ValueError("block_bits and interval must be positive")
 
-    out_path = os.path.splitext(file_path)[0] + '.xlsx'
+    out_path = os.path.splitext(file_path)[0] + ".xlsx"
     try:
-        writer = pd.ExcelWriter(out_path, engine='xlsxwriter')
-        df.to_excel(writer, sheet_name='Zscore', index=False)
+        writer = pd.ExcelWriter(out_path, engine="xlsxwriter")
+        df.to_excel(writer, sheet_name="Zscore", index=False)
         workbook = writer.book
-        worksheet = writer.sheets['Zscore']
+        worksheet = writer.sheets["Zscore"]
 
-        if file_path.endswith('.csv'):
-            time_format = workbook.add_format({'num_format': 'hh:mm:ss'})
+        if file_path.endswith(".csv"):
+            time_format = workbook.add_format({"num_format": "hh:mm:ss"})
             worksheet.set_column(0, 0, None, time_format)
-            x_name = f'Time - one sample every {interval} second(s)'
+            x_name = f"Time - one sample every {interval} second(s)"
             date_axis = True
         else:
-            x_name = f'Number of Samples - one sample every {interval} second(s)'
+            x_name = f"Number of Samples - one sample every {interval} second(s)"
             date_axis = False
 
-        chart = workbook.add_chart({'type': 'line'})
-        chart.add_series({'categories': ['Zscore', 1, 0, len(df), 0], 'values': ['Zscore', 1, 3, len(df), 3]})
-        chart.set_title({'name': os.path.basename(file_path)})
-        chart.set_x_axis({'name': x_name, 'date_axis': date_axis})
-        chart.set_y_axis({'name': f'Z-Score - Sample Size = {block_bits} bits'})
-        chart.set_legend({'none': True})
-        worksheet.insert_chart('F2', chart)
+        chart = workbook.add_chart({"type": "line"})
+        chart.add_series(
+            {
+                "categories": ["Zscore", 1, 0, len(df), 0],
+                "values": ["Zscore", 1, 3, len(df), 3],
+            }
+        )
+        chart.set_title({"name": os.path.basename(file_path)})
+        chart.set_x_axis({"name": x_name, "date_axis": date_axis})
+        chart.set_y_axis({"name": f"Z-Score - Sample Size = {block_bits} bits"})
+        chart.set_legend({"none": True})
+        worksheet.insert_chart("F2", chart)
         writer.close()
         return out_path
     except Exception as e:
@@ -149,14 +158,14 @@ def write_excel_with_chart(df: pd.DataFrame, file_path: str, block_bits: int, in
 
 def concat_csv_files(all_filenames: Iterable[str], out_stem: str) -> str:
     """Concatenate multiple CSV files into one.
-    
+
     Args:
         all_filenames: Iterable of CSV file paths to concatenate
         out_stem: Base name for output file (without extension)
-        
+
     Returns:
         Path to concatenated CSV file
-        
+
     Raises:
         ValueError: If no filenames provided
         RuntimeError: If files cannot be read or written
@@ -169,7 +178,7 @@ def concat_csv_files(all_filenames: Iterable[str], out_stem: str) -> str:
     try:
         with ExitStack() as stack:
             files = [stack.enter_context(open(fname)) for fname in filenames_list]
-            with open(out_path, 'a') as out:
+            with open(out_path, "a") as out:
                 for f in files:
                     for line in f:
                         out.write(line)
@@ -178,3 +187,93 @@ def concat_csv_files(all_filenames: Iterable[str], out_stem: str) -> str:
         raise RuntimeError(f"Failed to concatenate CSV files: {e}")
 
 
+def write_enhanced_excel(
+    df: pd.DataFrame, file_path: str, block_bits: int, interval: int
+) -> str:
+    """Write comprehensive Excel with all columns, chart, and statistics sheet.
+
+    Saves to data/processed/ folder with same filename stem as input CSV.
+
+    Args:
+        df: DataFrame with analysis data (must have columns: time, ones, cumulative_mean, z_test, p_value)
+        file_path: Path to input CSV file
+        block_bits: Number of bits per sample
+        interval: Sample interval in seconds
+
+    Returns:
+        Path to created Excel file
+
+    Raises:
+        RuntimeError: If Excel file cannot be created
+    """
+    try:
+        import xlsxwriter  # noqa: F401
+    except ImportError:
+        raise RuntimeError("xlsxwriter package is required for Excel export")
+
+    # Ensure data/processed folder exists
+    os.makedirs("data/processed", exist_ok=True)
+
+    # Extract filename stem and save to processed folder
+    base_name = os.path.basename(file_path)
+    out_path = os.path.join("data/processed", os.path.splitext(base_name)[0] + ".xlsx")
+
+    writer = pd.ExcelWriter(out_path, engine="xlsxwriter")
+
+    # Write all columns to Excel
+    df_export = df[["time", "ones", "cumulative_mean", "z_test", "p_value"]]
+    df_export.to_excel(writer, sheet_name="Analysis", index=False)
+
+    workbook = writer.book
+    worksheet = writer.sheets["Analysis"]
+
+    # Format time column
+    time_format = workbook.add_format({"num_format": "hh:mm:ss"})
+    worksheet.set_column(0, 0, None, time_format)
+
+    # Add Z-score chart
+    chart = workbook.add_chart({"type": "line"})
+    chart.add_series(
+        {
+            "categories": ["Analysis", 1, 0, len(df), 0],
+            "values": ["Analysis", 1, 3, len(df), 3],
+            "name": "Z-Score",
+        }
+    )
+
+    chart.set_title({"name": f"Z-Score Analysis - {os.path.basename(file_path)}"})
+    chart.set_x_axis(
+        {"name": f"Time - one sample every {interval}s", "date_axis": True}
+    )
+    chart.set_y_axis({"name": f"Z-Score (n={block_bits} bits)"})
+
+    # TODO: Add reference lines (removed due to xlsxwriter compatibility issues)
+
+    worksheet.insert_chart("G2", chart)
+
+    # Add statistics summary sheet
+    stats_worksheet = workbook.add_worksheet("Statistics")
+    stats_data = [
+        ["Metric", "Value"],
+        ["Total Samples", len(df)],
+        ["Bits per Sample", block_bits],
+        ["Sample Interval (s)", interval],
+        ["Mean Ones", df["ones"].mean()],
+        ["Expected Mean", 0.5 * block_bits],
+        ["Mean Z-Score", df["z_test"].mean()],
+        ["Max |Z-Score|", df["z_test"].abs().max()],
+        ["Samples within 95% CI", (df["z_test"].abs() <= 1.96).sum()],
+        ["Pass Rate (%)", ((df["z_test"].abs() <= 1.96).sum() / len(df) * 100)],
+    ]
+
+    for row_idx, (metric, value) in enumerate(stats_data):
+        stats_worksheet.write(row_idx, 0, metric)
+        if isinstance(value, float):
+            stats_worksheet.write(
+                row_idx, 1, value, workbook.add_format({"num_format": "0.0000"})
+            )
+        else:
+            stats_worksheet.write(row_idx, 1, value)
+
+    writer.close()
+    return out_path

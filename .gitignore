@@ -12,3 +12,4 @@ wheels/
 # Data files
 data/raw/*.csv
 data/processed/*.csv
+data/processed/*.xlsx
