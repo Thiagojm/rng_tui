@@ -1,9 +1,10 @@
+import time
+
 from lib.rng_devices.bitbabbler_rng import (
-    is_device_available,
     get_bytes,
     get_exact_bits,
+    is_device_available,
 )
-import time
 
 t0 = time.time()
 # Check if device is connected

@@ -29,5 +29,8 @@ line-length = 88
 select = ["E", "F", "I", "N", "W", "UP"]
 ignore = ["E501"]
 
+[tool.ruff.lint.per-file-ignores]
+"lib/rng_devices/bitbabbler_rng/ftdi.py" = ["N803", "N806"]
+
 [tool.ruff.lint.pydocstyle]
 convention = "google"

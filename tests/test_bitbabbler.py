@@ -5,13 +5,14 @@ These tests will be skipped if BitBabbler hardware is not connected.
 """
 
 import pytest
+
 from lib.rng_devices.bitbabbler_rng import (
-    is_device_available,
-    get_bytes,
-    get_bits,
-    get_exact_bits,
-    random_int,
     close,
+    get_bits,
+    get_bytes,
+    get_exact_bits,
+    is_device_available,
+    random_int,
 )
 
 

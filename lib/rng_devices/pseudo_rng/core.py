@@ -7,7 +7,6 @@ secrets module. Serves as a fallback when hardware RNGs are not available.
 import asyncio
 import secrets
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional
 
 # Module-level executor (1 worker for async operations)
 _executor = ThreadPoolExecutor(max_workers=1)
@@ -86,7 +85,7 @@ def get_exact_bits(n: int) -> bytes:
     return secrets.token_bytes(n_bytes)
 
 
-def random_int(min: int = 0, max: Optional[int] = None) -> int:
+def random_int(min: int = 0, max: int | None = None) -> int:
     """Generate a cryptographically secure random integer.
 
     Args:
@@ -191,7 +190,7 @@ async def get_exact_bits_async(n: int) -> bytes:
         raise
 
 
-async def random_int_async(min_val: int = 0, max_val: Optional[int] = None) -> int:
+async def random_int_async(min_val: int = 0, max_val: int | None = None) -> int:
     """Async version of random_int.
 
     Args:

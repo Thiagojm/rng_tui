@@ -35,8 +35,7 @@ from textual.widgets import (
 )
 
 # Import RNG modules
-from lib.rng_devices import intel_seed, truerng, bitbabbler_rng, pseudo_rng
-
+from lib.rng_devices import bitbabbler_rng, intel_seed, pseudo_rng, truerng
 
 # Device registry
 DEVICES = {

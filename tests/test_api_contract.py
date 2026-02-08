@@ -4,9 +4,11 @@ Tests for API contract compliance across all RNG devices.
 Ensures all device modules expose the same interface and behave consistently.
 """
 
-import pytest
 import inspect
-from lib.rng_devices import pseudo_rng, intel_seed, truerng, bitbabbler_rng
+
+import pytest
+
+from lib.rng_devices import bitbabbler_rng, intel_seed, pseudo_rng, truerng
 
 
 class TestAPIContract:
@@ -50,10 +52,10 @@ class TestAPIContract:
                 f"{device.__name__}.get_bytes should have 1 parameter"
             )
             param = params[0]
-            assert param.annotation == int, (
+            assert param.annotation is int, (
                 f"{device.__name__}.get_bytes parameter should be int"
             )
-            assert sig.return_annotation == bytes, (
+            assert sig.return_annotation is bytes, (
                 f"{device.__name__}.get_bytes should return bytes"
             )
 
@@ -67,7 +69,7 @@ class TestAPIContract:
         assert "folds" in bitbabbler_sig.parameters, (
             "bitbabbler_rng.get_bytes should have 'folds' parameter"
         )
-        assert bitbabbler_sig.return_annotation == bytes, (
+        assert bitbabbler_sig.return_annotation is bytes, (
             "bitbabbler_rng.get_bytes should return bytes"
         )
 
@@ -130,8 +132,6 @@ class TestAPIContract:
         devices = [pseudo_rng, intel_seed, truerng, bitbabbler_rng]
 
         for device in devices:
-            device_name = device.__name__
-
             # All should raise ValueError for invalid inputs
             with pytest.raises(ValueError):
                 device.get_bytes(0)

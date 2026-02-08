@@ -5,13 +5,14 @@ Since this is software-only, all tests should pass regardless of hardware.
 """
 
 import pytest
+
 from lib.rng_devices.pseudo_rng import (
-    is_device_available,
-    get_bytes,
-    get_bits,
-    get_exact_bits,
-    random_int,
     close,
+    get_bits,
+    get_bytes,
+    get_exact_bits,
+    is_device_available,
+    random_int,
 )
 
 

@@ -7,11 +7,11 @@ Dependencies: pyserial
 """
 
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
-from serial.tools import list_ports
-import serial
 import os
-from typing import Optional
+from concurrent.futures import ThreadPoolExecutor
+
+import serial
+from serial.tools import list_ports
 
 # Module-level executor for async operations (1 worker to prevent concurrent hardware access)
 _executor = ThreadPoolExecutor(max_workers=1)
@@ -40,7 +40,7 @@ def _is_trng_port(port) -> bool:
         return False
 
 
-def _find_port() -> Optional[str]:
+def _find_port() -> str | None:
     """Find the TrueRNG device port.
 
     Returns:
@@ -167,7 +167,7 @@ def _bytes_to_int(data: bytes) -> int:
     return int.from_bytes(data, "big")
 
 
-def random_int(min_val: int = 0, max_val: Optional[int] = None) -> int:
+def random_int(min_val: int = 0, max_val: int | None = None) -> int:
     """Generate a cryptographically secure random integer from TrueRNG.
 
     Args:
@@ -291,7 +291,7 @@ async def get_exact_bits_async(n: int) -> bytes:
         raise
 
 
-async def random_int_async(min_val: int = 0, max_val: Optional[int] = None) -> int:
+async def random_int_async(min_val: int = 0, max_val: int | None = None) -> int:
     """Async version of random_int.
 
     Args:

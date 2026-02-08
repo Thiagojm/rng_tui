@@ -1,10 +1,11 @@
-from lib.rng_devices.truerng import (
-    is_device_available,
-    get_bytes,
-    get_bits,
-    get_exact_bits,
-)
 import time
+
+from lib.rng_devices.truerng import (
+    get_bits,
+    get_bytes,
+    get_exact_bits,
+    is_device_available,
+)
 
 # Check if device is connected
 if is_device_available():

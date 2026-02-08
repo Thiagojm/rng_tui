@@ -27,17 +27,17 @@ Async Example:
 """
 
 from .core import (
-    is_device_available,
-    get_bytes,
-    get_bits,
-    get_exact_bits,
-    random_int,
     close,
-    get_bytes_async,
-    get_bits_async,
-    get_exact_bits_async,
-    random_int_async,
     close_async,
+    get_bits,
+    get_bits_async,
+    get_bytes,
+    get_bytes_async,
+    get_exact_bits,
+    get_exact_bits_async,
+    is_device_available,
+    random_int,
+    random_int_async,
 )
 
 __all__ = [

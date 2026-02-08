@@ -7,8 +7,8 @@ cryptographically secure random numbers using hardware entropy.
 
 import asyncio
 import ctypes
-import os
 import math
+import os
 import platform
 from concurrent.futures import ThreadPoolExecutor
 

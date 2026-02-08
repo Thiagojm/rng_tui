@@ -37,7 +37,6 @@ if _backend is None:
 import usb.core  # noqa: E402
 import usb.util  # noqa: E402
 
-
 FTDI_VENDOR_ID = 0x0403
 
 
@@ -107,7 +106,7 @@ class FTDIDevice:
     def find(
         vendor_id: int,
         product_id: int,
-        serial: Optional[str] = None,
+        serial: str | None = None,
     ) -> Optional["FTDIDevice"]:
         # Pass backend explicitly if we have one
         kwargs = dict(idVendor=vendor_id, idProduct=product_id)
@@ -165,7 +164,7 @@ class FTDIDevice:
         return FTDIDevice(dev, in_ep, out_ep, wMaxPacketSize)
 
     @staticmethod
-    def find_any_bitbabbler(serial: Optional[str] = None) -> Optional["FTDIDevice"]:
+    def find_any_bitbabbler(serial: str | None = None) -> Optional["FTDIDevice"]:
         """Find any connected BitBabbler by scanning USB strings.
 
         This scans all USB devices and selects the first whose manufacturer or
