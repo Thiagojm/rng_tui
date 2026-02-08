@@ -122,10 +122,10 @@ class TestBitBabblerRNG:
     @pytest.mark.hardware("bitbabbler_rng")
     def test_random_int_validation(self, skip_if_no_device):
         """Test input validation for random_int."""
-        with pytest.raises(ValueError, match="min must be less than max"):
+        with pytest.raises(ValueError, match="min_val must be less than max_val"):
             random_int(10, 10)
 
-        with pytest.raises(ValueError, match="min must be less than max"):
+        with pytest.raises(ValueError, match="min_val must be less than max_val"):
             random_int(20, 10)
 
     @pytest.mark.hardware("bitbabbler_rng")

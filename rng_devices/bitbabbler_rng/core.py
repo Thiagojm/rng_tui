@@ -47,6 +47,10 @@ def is_device_available() -> bool:
     if not _bb_available:
         return False
 
+    # Check if we already have a cached device
+    if _cached_device is not None:
+        return True
+
     try:
         bb = _bb.BitBabbler.open()
         try:
