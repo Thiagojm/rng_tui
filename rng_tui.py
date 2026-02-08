@@ -16,7 +16,7 @@ Features:
 """
 
 import asyncio
-import csv
+import os
 from datetime import datetime
 
 from textual.app import App, ComposeResult
@@ -39,6 +39,7 @@ from lib.rng_devices import bitbabbler_rng, intel_seed, pseudo_rng, truerng
 
 # Import services
 from lib.services import filenames
+from lib.services.storage import write_csv_count
 
 # Device registry
 DEVICES = {
@@ -224,8 +225,6 @@ class RNGCollectorApp(App):
         self.sample_count = 0
         self.total_ones = 0
         self.start_time = None
-        self.csv_writer = None
-        self.csv_file = None
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -370,13 +369,6 @@ class RNGCollectorApp(App):
                 )
                 self.output_file = f"data/raw/{filename_stem}.csv"
 
-            # Open CSV file
-            self.csv_file = open(self.output_file, "w", newline="")
-            self.csv_writer = csv.writer(self.csv_file)
-            self.csv_writer.writerow(
-                ["datetime", "ones", "zeros", "ratio_percent", "sample_bytes", "device"]
-            )
-
             # Reset state
             self.is_collecting = True
             self.is_paused = False
@@ -453,12 +445,6 @@ class RNGCollectorApp(App):
             except Exception as e:
                 # Log but don't fail - device might already be closed
                 print(f"Warning: Error closing device: {e}")
-
-        # Close CSV file
-        if self.csv_file:
-            self.csv_file.close()
-            self.csv_file = None
-            self.csv_writer = None
 
         # Reset device references
         self.device_module = None
@@ -559,19 +545,9 @@ class RNGCollectorApp(App):
                     hex_preview,
                 )
 
-                # Write to CSV
-                if self.csv_writer:
-                    self.csv_writer.writerow(
-                        [
-                            timestamp.isoformat(),
-                            ones,
-                            zeros,
-                            f"{ratio:.2f}",
-                            len(data),
-                            self.device_module.__name__,
-                        ]
-                    )
-                    self.csv_file.flush()  # Ensure data is written
+                # Write to CSV using storage service
+                file_stem = os.path.splitext(self.output_file)[0]
+                write_csv_count(ones, file_stem)
 
                 # Check if duration exceeded
                 if self.duration > 0 and elapsed >= self.duration:
