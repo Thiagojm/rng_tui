@@ -1,6 +1,6 @@
 # RNG TUI - Random Number Generator Data Collector
 
-A modern Terminal User Interface (TUI) application for collecting random number generator data from various hardware and software entropy sources. Built with [Textual](https://textual.textualize.io/) for a rich, interactive experience.
+A modern Terminal User Interface (TUI) application for collecting and analyzing random number generator data from various hardware and software entropy sources. Built with [Textual](https://textual.textualize.io/) for a rich, interactive experience.
 
 ![Screenshot](https://via.placeholder.com/800x400/000000/00FF00?text=RNG+TUI+Screenshot)
 
@@ -8,8 +8,11 @@ A modern Terminal User Interface (TUI) application for collecting random number 
 
 - **Multiple RNG Sources**: Support for hardware RNG devices and software fallbacks
 - **Real-time Statistics**: Live display of entropy quality metrics
-- **Interactive TUI**: Rich terminal interface with color-coded indicators
-- **CSV Export**: Save collected data with timestamps and statistics
+- **Interactive TUI**: Rich terminal interface with tabs for Collection and Analysis
+- **Statistical Analysis**: Z-score calculations, p-values, and randomness assessment
+- **File Browser**: Navigate and select CSV files for analysis
+- **Excel Export**: Comprehensive reports with charts and statistics sheets
+- **CSV Export**: Save collected data with standardized timestamps and statistics
 - **Configurable Collection**: Adjustable sample size, frequency, and duration
 - **Cross-platform**: Windows and Linux support
 - **Async Operation**: Non-blocking collection with pause/resume controls
@@ -41,7 +44,7 @@ cd rng-tui
 uv sync
 
 # Run the application
-uv run python main.py
+uv run python rng_tui.py
 ```
 
 ### Alternative: Install with pip
@@ -51,7 +54,7 @@ uv run python main.py
 pip install textual pyserial pyusb
 
 # Run directly
-python main.py
+python rng_tui.py
 ```
 
 ### Hardware Setup
@@ -74,34 +77,55 @@ python main.py
 
 ```bash
 # Launch the application
-uv run python main.py
+uv run python rng_tui.py
 
 # Or directly
-python main.py
+python rng_tui.py
 ```
 
 ### Interface Overview
 
-The TUI consists of three main panels:
+The TUI consists of two main tabs:
+
+#### **Collect Tab**
+Collects RNG data with real-time statistics:
 
 1. **Configuration Panel** (Left)
    - Device selection
-   - Sample size (bits)
+   - Sample size (bits, must be divisible by 8)
    - Collection frequency (seconds)
    - Duration (0 = infinite)
-   - Output file path
+   - Output file path (auto-generated with timestamp)
 
 2. **Statistics Panel** (Right)
-   - Real-time ratio analysis (color-coded)
-   - Running average
+   - Real-time entropy analysis (color-coded)
+   - Running average and standard deviation
    - Sample count and elapsed time
    - Progress bar for timed collections
    - Start/Pause/Stop controls
 
 3. **Data Table** (Bottom)
    - Live data display
-   - Sample number, timestamp, bytes, ones/zeros ratio
-   - Hexadecimal preview
+   - Sample number, timestamp, bit counts, hex preview
+
+#### **Analysis Tab**
+Analyzes previously collected CSV data:
+
+1. **File Browser** (Left)
+   - Directory tree navigation
+   - Select CSV files for analysis
+
+2. **Analysis Panel** (Right)
+   - File selection display
+   - Analysis parameters (bits per sample, interval)
+   - Statistical results with Z-scores and p-values
+   - Randomness assessment (PASS/REVIEW)
+   - Excel export button
+
+3. **Statistics Display** (Bottom)
+   - Comprehensive statistical summary
+   - Sample count, mean, Z-score analysis
+   - 95% confidence interval coverage
 
 ### Keyboard Shortcuts
 
@@ -126,14 +150,31 @@ The TUI consists of three main panels:
   - 0: Raw entropy
   - 1-4: Progressive whitening
 
-## 📊 Output Format
+## 📊 Output Formats
 
-Data is exported to CSV with the following columns:
+### CSV Format
+Data is exported to CSV with timestamp and bit count:
 
 ```csv
-datetime,ones,zeros,ratio_percent,sample_bytes,device
-2024-01-15T10:30:45.123456,1024,1024,50.00,256,pseudo_rng
+time,count
+20240115T103045,1024
+20240115T103046,1032
 ```
+
+**Filename Convention**: `YYYYMMDDTHHMMSS_{device}_s{bits}_i{interval}[_f{folds}].csv`
+- `YYYYMMDDTHHMMSS`: Timestamp when collection started
+- `{device}`: Device name (pseudo_rng, truerng, bitbabbler_rng, intel_seed)
+- `s{bits}`: Sample size in bits
+- `i{interval}`: Interval between samples in seconds
+- `f{folds}`: BitBabbler XOR folding level (optional)
+
+### Excel Export
+Analysis results can be exported to Excel with:
+- **Analysis Sheet**: All data columns (time, ones, cumulative_mean, z_test, p_value)
+- **Statistics Sheet**: Summary metrics, Z-score analysis, randomness assessment
+- **Chart**: Z-score over time with reference lines (when supported)
+
+Files are saved to `data/processed/` folder with `.xlsx` extension.
 
 ## 🧪 Testing
 
@@ -169,12 +210,17 @@ uv run pytest
 
 ```
 rng_tui/
-├── main.py                 # Application entry point
 ├── rng_tui.py             # Main TUI application
+├── main.py                # Alternative entry point
 ├── style.css              # Textual styling
 ├── pyproject.toml         # Project configuration
+├── uv.lock                # Dependency lockfile
 ├── lib/                   # Library modules
 │   ├── __init__.py
+│   ├── services/          # Business logic services
+│   │   ├── __init__.py
+│   │   ├── storage.py     # CSV/Excel processing
+│   │   └── filenames.py   # Filename generation
 │   └── rng_devices/       # RNG device implementations
 │       ├── __init__.py
 │       ├── pseudo_rng/    # Software fallback
@@ -182,8 +228,16 @@ rng_tui/
 │       ├── bitbabbler_rng/# BitBabbler hardware
 │       └── intel_seed/    # Intel RDSEED CPU
 ├── tests/                 # Automated test suite
+│   ├── __init__.py
 │   ├── conftest.py        # Test configuration
-│   └── test_*.py          # Test files
+│   ├── test_*.py          # Unit tests
+│   └── manual/            # Manual test scripts
+│       ├── __init__.py
+│       ├── test_bit_manual.py
+│       └── test_true_manual.py
+├── data/                  # Data directories
+│   ├── raw/               # CSV data from collection
+│   └── processed/         # Excel analysis reports
 └── AGENTS.md              # Developer guidelines
 ```
 
