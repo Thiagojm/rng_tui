@@ -1,6 +1,6 @@
 import os
 import time
-from typing import Optional, Tuple
+from typing import Optional
 
 # Try to select libusb1 backend explicitly before importing usb.core
 from usb.backend import libusb1 as _libusb1
@@ -34,8 +34,8 @@ if _backend is None:
     except Exception:
         _backend = None
 
-import usb.core
-import usb.util
+import usb.core  # noqa: E402
+import usb.util  # noqa: E402
 
 
 FTDI_VENDOR_ID = 0x0403

@@ -18,8 +18,6 @@ Features:
 import asyncio
 import csv
 from datetime import datetime
-from pathlib import Path
-from typing import Optional
 
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
@@ -132,7 +130,7 @@ class ConfigPanel(Static):
             yield Input(value="1.0", id="freq_input", type="number")
 
             yield Label("Duration (seconds, 0 = infinite):")
-            yield Input(value="60", id="duration_input", type="integer")
+            yield Input(value="0", id="duration_input", type="integer")
 
             yield Label("Folds (BitBabbler only, 0=raw):")
             yield Select(

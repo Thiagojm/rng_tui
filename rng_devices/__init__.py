@@ -27,10 +27,10 @@ Usage:
         data = pseudo_rng.get_bytes(32)
 """
 
-from . import intel_seed
-from . import truerng
 from . import bitbabbler_rng
+from . import intel_seed
 from . import pseudo_rng
+from . import truerng
 
 __all__ = [
     "intel_seed",
