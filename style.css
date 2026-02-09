@@ -5,34 +5,28 @@ Screen {
 .title {
     text-style: bold;
     color: #00ff00;
-    margin: 0 0 1 0;
-}
-
-/* Top row container - holds ConfigPanel and StatsPanel side by side */
-.top-container {
-    layout: horizontal;
-    height: 30;
+    margin: 0;
 }
 
 ConfigPanel {
-    width: 40%;
+    width: 100%;
     height: auto;
-    border: solid green;
-    padding: 1;
+    border: none;
+    padding: 0;
 }
 
 StatsPanel {
-    width: 60%;
+    width: 100%;
     height: auto;
-    border: solid blue;
-    padding: 1;
+    border: none;
+    padding: 0;
 }
 
 DataTablePanel {
     width: 100%;
     height: auto;
-    border: solid yellow;
-    padding: 1;
+    border: none;
+    padding: 0;
 }
 
 DataTablePanel DataTable {
@@ -69,7 +63,7 @@ Select:disabled {
 /* Buttons within StatsPanel */
 .stats-buttons {
     layout: horizontal;
-    margin-top: 1;
+    margin-top: 0;
     height: auto;
 }
 
@@ -87,25 +81,20 @@ Select:disabled {
     margin-top: 1;
 }
 
-/* Bottom container for DataTablePanel */
-.bottom-container {
-    width: 100%;
-    height: 1fr;
-}
+
 
 /* Analysis Panel Layout */
 .file-browser-panel {
-    width: 35%;
+    width: 30%;
     height: 100%;
-    border-right: solid $primary;
-    padding: 1;
+    border-right: none;
+    padding: 0;
 }
 
 .analysis-content {
-    width: 65%;
-    height: 100%;
-    padding: 1;
-    overflow: auto;
+    width: 70%;
+    height: auto;
+    padding: 0;
 }
 
 /* Form elements */
@@ -115,7 +104,7 @@ Select:disabled {
 }
 
 .short-input {
-    width: 10;
+    width: 12;
 }
 
 .button-row {
@@ -159,9 +148,9 @@ DirectoryTree {
 #stats_display {
     border: solid $primary-lighten-2;
     padding: 0 1;
-    margin-bottom: 1;
+    margin-bottom: 0;
     height: auto;
-    max-height: 3;
+    max-height: 5;
 }
 
 /* Refresh button spacing */

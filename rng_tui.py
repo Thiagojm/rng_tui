@@ -22,7 +22,7 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 from textual.app import App, ComposeResult
-from textual.containers import Horizontal, Vertical
+from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.reactive import reactive
 from textual.widgets import (
     Button,
@@ -173,13 +173,13 @@ class DataTablePanel(Static):
         with Vertical():
             yield Label("📋 Collected Data", classes="title")
             table = DataTable(id="data_table")
-            table.add_column("#", width=6)
-            table.add_column("Time", width=12)
-            table.add_column("Bytes", width=6)
-            table.add_column("Ones", width=5)
-            table.add_column("Zeros", width=5)
-            table.add_column("Ratio%", width=8)
-            table.add_column("Hex", width=16)
+            table.add_column("#", width=4)
+            table.add_column("Time", width=9)
+            table.add_column("Bytes", width=5)
+            table.add_column("Ones", width=4)
+            table.add_column("Zeros", width=4)
+            table.add_column("Ratio%", width=7)
+            table.add_column("Hex", width=12)
             yield table
 
     def add_sample(
@@ -308,17 +308,15 @@ class RNGCollectorApp(App):
         with TabbedContent(initial="collect"):
             # Tab 1: Data Collection (existing functionality)
             with TabPane("Collect", id="collect"):
-                with Horizontal(classes="top-container"):
+                with VerticalScroll():
                     yield ConfigPanel()
                     yield StatsPanel()
-
-                # Bottom container for DataTablePanel (takes remaining space)
-                with Vertical(classes="bottom-container"):
                     yield DataTablePanel()
 
             # Tab 2: Statistical Analysis (new functionality)
             with TabPane("Analysis", id="analysis"):
-                yield AnalysisPanel()
+                with VerticalScroll():
+                    yield AnalysisPanel()
 
         yield Footer()
 
@@ -815,7 +813,7 @@ class RNGCollectorApp(App):
                     stats_panel.update_progress(progress, 100)
 
                 # Add to table
-                hex_preview = data.hex()[:12] + "..."
+                hex_preview = data.hex()[:9] + "..."
                 data_table.add_sample(
                     self.sample_count,
                     timestamp.strftime("%H:%M:%S.%f")[:-3],
