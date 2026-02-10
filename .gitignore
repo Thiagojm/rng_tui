@@ -13,3 +13,4 @@ wheels/
 data/raw/*.csv
 data/processed/*.csv
 data/processed/*.xlsx
+output/

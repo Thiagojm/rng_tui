@@ -40,3 +40,8 @@ ignore = ["E501"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
+[dependency-groups]
+dev = [
+    "auto-py-to-exe>=2.48.1",
+]
