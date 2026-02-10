@@ -12,6 +12,14 @@ from concurrent.futures import ThreadPoolExecutor
 _executor = ThreadPoolExecutor(max_workers=1)
 
 
+def _get_executor() -> ThreadPoolExecutor:
+    """Get the executor, recreating it if it was shut down."""
+    global _executor
+    if _executor._shutdown:
+        _executor = ThreadPoolExecutor(max_workers=1)
+    return _executor
+
+
 def is_device_available() -> bool:
     """Check if the pseudo RNG is available.
 
@@ -85,28 +93,30 @@ def get_exact_bits(n: int) -> bytes:
     return secrets.token_bytes(n_bytes)
 
 
-def random_int(min: int = 0, max: int | None = None) -> int:
+def random_int(min_val: int = 0, max_val: int | None = None) -> int:
     """Generate a cryptographically secure random integer.
 
     Args:
-        min: Minimum value (inclusive). Defaults to 0.
-        max: Maximum value (exclusive). If None, generates using full range.
+        min_val: Minimum value (inclusive). Defaults to 0.
+        max_val: Maximum value (exclusive). If None, generates using full range.
 
     Returns:
-        Random integer in range [min, max) if max is specified.
+        Random integer in range [min_val, max_val) if max_val is specified.
 
     Raises:
-        ValueError: If min >= max or if min < 0 when max is None
+        ValueError: If min_val >= max_val or if min_val < 0 when max_val is None
     """
-    if max is None:
-        if min < 0:
-            raise ValueError("min must be non-negative when max is None")
-        return secrets.randbelow(min) if min > 0 else secrets.randbits(32)
+    if max_val is None:
+        if min_val < 0:
+            raise ValueError("min_val must be non-negative when max_val is None")
+        return secrets.randbelow(min_val) if min_val > 0 else secrets.randbits(32)
 
-    if min >= max:
-        raise ValueError(f"min must be less than max, got min={min}, max={max}")
+    if min_val >= max_val:
+        raise ValueError(
+            f"min_val must be less than max_val, got min_val={min_val}, max_val={max_val}"
+        )
 
-    return min + secrets.randbelow(max - min)
+    return min_val + secrets.randbelow(max_val - min_val)
 
 
 def close() -> None:
@@ -141,7 +151,7 @@ async def get_bytes_async(n: int) -> bytes:
     """
     loop = asyncio.get_running_loop()
     try:
-        return await loop.run_in_executor(_executor, get_bytes, n)
+        return await loop.run_in_executor(_get_executor(), get_bytes, n)
     except asyncio.CancelledError:
         # Cleanup on cancellation
         close()
@@ -163,7 +173,7 @@ async def get_bits_async(n: int) -> bytes:
     """
     loop = asyncio.get_running_loop()
     try:
-        return await loop.run_in_executor(_executor, get_bits, n)
+        return await loop.run_in_executor(_get_executor(), get_bits, n)
     except asyncio.CancelledError:
         close()
         raise
@@ -184,7 +194,7 @@ async def get_exact_bits_async(n: int) -> bytes:
     """
     loop = asyncio.get_running_loop()
     try:
-        return await loop.run_in_executor(_executor, get_exact_bits, n)
+        return await loop.run_in_executor(_get_executor(), get_exact_bits, n)
     except asyncio.CancelledError:
         close()
         raise
@@ -206,7 +216,7 @@ async def random_int_async(min_val: int = 0, max_val: int | None = None) -> int:
     """
     loop = asyncio.get_running_loop()
     try:
-        return await loop.run_in_executor(_executor, random_int, min_val, max_val)
+        return await loop.run_in_executor(_get_executor(), random_int, min_val, max_val)
     except asyncio.CancelledError:
         close()
         raise
@@ -217,8 +227,9 @@ async def close_async() -> None:
 
     Calls sync close() and shuts down the executor.
     """
+    global _executor
     loop = asyncio.get_running_loop()
     try:
-        await loop.run_in_executor(_executor, close)
+        await loop.run_in_executor(_get_executor(), close)
     finally:
         _executor.shutdown(wait=False)

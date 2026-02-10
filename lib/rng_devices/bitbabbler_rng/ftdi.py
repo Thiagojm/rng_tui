@@ -34,8 +34,8 @@ if _backend is None:
     except Exception:
         _backend = None
 
-import usb.core  # noqa: E402
-import usb.util  # noqa: E402
+import usb.core
+import usb.util
 
 FTDI_VENDOR_ID = 0x0403
 
