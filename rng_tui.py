@@ -781,7 +781,7 @@ class RNGCollectorApp(App):
                     data = await self.device_module.get_bytes_async(self.sample_bytes)
 
                 # Calculate statistics
-                ones = sum(bin(b).count("1") for b in data)
+                ones = int.from_bytes(data, "big").bit_count()
                 zeros = len(data) * 8 - ones
                 ratio = (ones / (ones + zeros)) * 100
 
