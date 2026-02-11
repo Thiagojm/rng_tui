@@ -22,7 +22,14 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 from textual.app import App, ComposeResult
-from textual.containers import Horizontal, Vertical, VerticalScroll
+from textual.containers import (
+    Horizontal,
+    HorizontalGroup,
+    HorizontalScroll,
+    Vertical,
+    VerticalGroup,
+    VerticalScroll,
+)
 from textual.reactive import reactive
 from textual.widgets import (
     Button,
@@ -63,7 +70,7 @@ DEVICES = {
 }
 
 
-class StatsPanel(Static):
+class StatsPanel(VerticalGroup):
     """Panel displaying real-time statistics."""
 
     current_ratio = reactive(50.0)
@@ -73,21 +80,18 @@ class StatsPanel(Static):
     is_collecting = reactive(False)
 
     def compose(self) -> ComposeResult:
-        with Vertical():
-            yield Label("📊 Real-time Statistics", classes="title")
-            yield Label("Current Ratio: 50.00%", id="current_ratio")
-            yield Label("Running Avg: 50.00%", id="running_avg")
-            yield Label("Total Samples: 0", id="total_samples")
-            yield Label("Elapsed: 00:00:00", id="elapsed_time")
-            yield ProgressBar(total=100, show_percentage=True, id="progress")
+        yield Label("📊 Real-time Statistics", classes="title")
+        yield Label("Current Ratio: 50.00%", id="current_ratio")
+        yield Label("Running Avg: 50.00%", id="running_avg")
+        yield Label("Total Samples: 0", id="total_samples")
+        yield Label("Elapsed: 00:00:00", id="elapsed_time")
+        yield ProgressBar(total=100, show_percentage=True, id="progress")
 
-            # Buttons row within StatsPanel
-            with Horizontal(classes="stats-buttons"):
-                yield Button("▶ Start", id="start_btn", variant="success")
-                yield Button(
-                    "⏸ Pause", id="pause_btn", variant="warning", disabled=True
-                )
-                yield Button("■ Stop", id="stop_btn", variant="error", disabled=True)
+        # Buttons row within StatsPanel
+        with Horizontal(classes="stats-buttons"):
+            yield Button("▶ Start", id="start_btn", variant="success")
+            yield Button("⏸ Pause", id="pause_btn", variant="warning", disabled=True)
+            yield Button("■ Stop", id="stop_btn", variant="error", disabled=True)
 
     def watch_current_ratio(self, ratio: float):
         self.query_one("#current_ratio", Label).update(f"Current Ratio: {ratio:.2f}%")
@@ -118,46 +122,40 @@ class StatsPanel(Static):
             progress.styles.visibility = "hidden"
 
 
-class ConfigPanel(Static):
+class ConfigPanel(VerticalGroup):
     """Panel for configuration inputs."""
 
     def compose(self) -> ComposeResult:
-        with Vertical():
-            yield Label("⚙️ Configuration", classes="title")
 
-            yield Label("Device:")
-            yield Select(
-                [
-                    (f"{info['name']} ({info['type']})", key)
-                    for key, info in DEVICES.items()
-                ],
-                id="device_select",
-                value="pseudo_rng",
-            )
-
-            yield Label("Sample Size (bits):")
-            yield Input(value="2048", id="bits_input", type="integer")
-
-            yield Label("Frequency (seconds):")
-            yield Input(value="1.0", id="freq_input", type="number")
-
-            yield Label("Duration (seconds, 0 = infinite):")
-            yield Input(value="0", id="duration_input", type="integer")
-
-            yield Label("Folds (BitBabbler only, 0=raw):")
-            yield Select(
-                [(str(i), i) for i in range(5)],
-                id="folds_select",
-                value=0,
-                disabled=True,
-            )
-
-            yield Label("Output File (auto-generated if empty):")
-            yield Input(
-                value="",
-                id="output_input",
-                placeholder="YYYYMMDDTHHMMSS_intel_s2048_i1.csv",
-            )
+        yield Label("⚙️ Configuration", classes="title")
+        yield Label("Device:")
+        yield Select(
+            [
+                (f"{info['name']} ({info['type']})", key)
+                for key, info in DEVICES.items()
+            ],
+            id="device_select",
+            value="pseudo_rng",
+        )
+        with HorizontalGroup():
+            with VerticalGroup():
+                yield Label("Sample Size (bits):")
+                yield Input(value="2048", id="bits_input", type="integer")
+            with VerticalGroup():
+                yield Label("Frequency (seconds):")
+                yield Input(value="1.0", id="freq_input", type="number")
+        with HorizontalGroup():
+            with VerticalGroup():
+                yield Label("Duration (seconds, 0 = infinite):")
+                yield Input(value="0", id="duration_input", type="integer")
+            with VerticalGroup():
+                yield Label("Folds (BitBabbler only, 0=raw):")
+                yield Select(
+                    [(str(i), i) for i in range(5)],
+                    id="folds_select",
+                    value=0,
+                    disabled=True,
+                )
 
     def on_select_changed(self, event: Select.Changed) -> None:
         """Handle device selection changes."""
@@ -166,21 +164,21 @@ class ConfigPanel(Static):
             folds_select.disabled = event.value != "bitbabbler_rng"
 
 
-class DataTablePanel(Static):
+class DataTablePanel(VerticalGroup):
     """Panel displaying collected data in a table."""
 
     def compose(self) -> ComposeResult:
-        with Vertical():
-            yield Label("📋 Collected Data", classes="title")
-            table = DataTable(id="data_table")
-            table.add_column("#", width=4)
-            table.add_column("Time", width=9)
-            table.add_column("Bytes", width=5)
-            table.add_column("Ones", width=4)
-            table.add_column("Zeros", width=4)
-            table.add_column("Ratio%", width=7)
-            table.add_column("Hex", width=12)
-            yield table
+
+        yield Label("📋 Collected Data", classes="title")
+        table = DataTable(id="data_table")
+        table.add_column("#", width=4)
+        table.add_column("Time", width=9)
+        table.add_column("Bytes", width=5)
+        table.add_column("Ones", width=4)
+        table.add_column("Zeros", width=4)
+        table.add_column("Ratio%", width=7)
+        table.add_column("Hex", width=12)
+        yield table
 
     def add_sample(
         self,
@@ -308,10 +306,11 @@ class RNGCollectorApp(App):
         with TabbedContent(initial="collect"):
             # Tab 1: Data Collection (existing functionality)
             with TabPane("Collect", id="collect"):
-                with VerticalScroll():
-                    yield ConfigPanel()
+                with HorizontalScroll():
+                    with VerticalScroll():
+                        yield ConfigPanel()
                     yield StatsPanel()
-                    yield DataTablePanel()
+                yield DataTablePanel()
 
             # Tab 2: Statistical Analysis (new functionality)
             with TabPane("Analysis", id="analysis"):
@@ -381,7 +380,6 @@ class RNGCollectorApp(App):
         bits_str = config.query_one("#bits_input", Input).value
         freq_str = config.query_one("#freq_input", Input).value
         duration_str = config.query_one("#duration_input", Input).value
-        output_path = config.query_one("#output_input", Input).value
 
         # Validate and set parameters
         try:
@@ -461,27 +459,23 @@ class RNGCollectorApp(App):
                     )
                 return
 
-            # Set output file
-            if output_path:
-                self.output_file = output_path
-            else:
-                # Map device key to device code
-                device_code_map = {
-                    "bitbabbler_rng": "bitb",
-                    "truerng": "trng",
-                    "intel_seed": "intel",
-                    "pseudo_rng": "pseudo",
-                }
-                device_code = device_code_map.get(device_key, device_key)
+            # Map device key to device code
+            device_code_map = {
+                "bitbabbler_rng": "bitb",
+                "truerng": "trng",
+                "intel_seed": "intel",
+                "pseudo_rng": "pseudo",
+            }
+            device_code = device_code_map.get(device_key, device_key)
 
-                # Generate filename using new convention
-                filename_stem = filenames.format_capture_name(
-                    device=device_code,
-                    bits=bits,
-                    interval=int(self.frequency),
-                    folds=self.folds if device_key == "bitbabbler_rng" else None,
-                )
-                self.output_file = f"data/raw/{filename_stem}.csv"
+            # Generate filename using new convention
+            filename_stem = filenames.format_capture_name(
+                device=device_code,
+                bits=bits,
+                interval=int(self.frequency),
+                folds=self.folds if device_key == "bitbabbler_rng" else None,
+            )
+            self.output_file = f"data/raw/{filename_stem}.csv"
 
             # Reset state
             self.is_collecting = True
