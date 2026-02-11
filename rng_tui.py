@@ -205,7 +205,7 @@ class DataTablePanel(VerticalGroup):
         table.scroll_end()
 
 
-class AnalysisPanel(Static):
+class AnalysisPanel(VerticalGroup):
     """Panel for statistical analysis and Excel export."""
 
     def compose(self) -> ComposeResult:
@@ -217,7 +217,7 @@ class AnalysisPanel(Static):
                 yield Button("🔄 Refresh", id="refresh_tree_btn", variant="default")
 
             # Right: Analysis Controls & Results
-            with Vertical(classes="analysis-content"):
+            with VerticalGroup(classes="analysis-content"):
                 yield Label("⚙️ Configuration", classes="title")
 
                 # Selected file display

@@ -22,3 +22,13 @@ DataTablePanel DataTable .datatable--header {
 DataTablePanel DataTable .datatable--cursor {
     background: #333333;
 }
+
+.short-input {
+    width: 12;
+}
+
+#stats_display {
+    border: solid $primary-lighten-2;
+    padding: 1;
+    margin-bottom: 1;
+}
