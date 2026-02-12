@@ -2,7 +2,7 @@
 
 A modern Terminal User Interface (TUI) application for collecting and analyzing random number generator data from various hardware and software entropy sources. Built with [Textual](https://textual.textualize.io/) for a rich, interactive experience.
 
-![Screenshot](https://via.placeholder.com/800x400/000000/00FF00?text=RNG+TUI+Screenshot)
+![Screenshot](https://via.placeholder.com/800x400/000000/00FF00?text=RNG+TUI+Screenshot) <!-- Replace with actual screenshot -->
 
 ## ✨ Features
 
@@ -210,24 +210,37 @@ uv run pytest
 
 ```
 rng_tui/
-├── rng_tui.py             # Main TUI application
-├── main.py                # Alternative entry point
-├── style.css              # Textual styling
-├── pyproject.toml         # Project configuration
-├── uv.lock                # Dependency lockfile
-├── lib/                   # Library modules
+├── rng_tui.py             # Thin entry point
+├── app/                   # TUI application code
 │   ├── __init__.py
-│   ├── services/          # Business logic services
+│   ├── main.py            # Main App class
+│   ├── panels.py          # UI panels
+│   ├── config.py          # Device config
+│   └── static/
+│       └── style.css      # Styling
+├── lib/                   # Core library
+│   ├── __init__.py
+│   ├── services/          # Storage/filename services
 │   │   ├── __init__.py
 │   │   ├── storage.py     # CSV/Excel processing
 │   │   └── filenames.py   # Filename generation
-│   └── rng_devices/       # RNG device implementations
+│   └── rng_devices/       # RNG implementations
 │       ├── __init__.py
 │       ├── pseudo_rng/    # Software fallback
+│       │   ├── __init__.py
+│       │   └── core.py
 │       ├── truerng/       # TrueRNG hardware
+│       │   ├── __init__.py
+│       │   └── core.py
 │       ├── bitbabbler_rng/# BitBabbler hardware
+│       │   ├── __init__.py
+│       │   ├── core.py
+│       │   ├── ftdi.py
+│       │   └── bitbabbler.py
 │       └── intel_seed/    # Intel RDSEED CPU
-├── tests/                 # Automated test suite
+│           ├── __init__.py
+│           └── intel_seed.py
+├── tests/                 # Pytest suite
 │   ├── __init__.py
 │   ├── conftest.py        # Test configuration
 │   ├── test_*.py          # Unit tests
@@ -238,7 +251,10 @@ rng_tui/
 ├── data/                  # Data directories
 │   ├── raw/               # CSV data from collection
 │   └── processed/         # Excel analysis reports
-└── AGENTS.md              # Developer guidelines
+├── CHANGELOG.md           # Release notes
+├── AGENTS.md              # Agent guidelines
+├── pyproject.toml         # Dependencies
+└── README.md              # This file
 ```
 
 ### API Reference

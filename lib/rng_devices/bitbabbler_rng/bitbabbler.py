@@ -6,6 +6,7 @@ XOR folding. Includes a resilient bitrate selection and auto-detection in
 `open()` that falls back to scanning USB descriptors when the canonical
 VID:PID is not found.
 """
+
 import time
 
 from .ftdi import (
@@ -67,9 +68,23 @@ class BitBabbler(FTDIDevice):
     Handles MPSSE initialization and exposes convenience methods to read raw
     and folded entropy. Use `BitBabbler.open()` for discovery and setup.
     """
-    def __init__(self, ftdi: FTDIDevice, bitrate: int | None = None, latency_ms: int | None = None,
-                 enable_mask: int = 0x0F, disable_polarity: int = 0x00) -> None:
-        super().__init__(ftdi.dev, ftdi.in_ep, ftdi.out_ep, ftdi.wMaxPacketSize, ftdi.interface_index, ftdi.timeout_ms)
+
+    def __init__(
+        self,
+        ftdi: FTDIDevice,
+        bitrate: int | None = None,
+        latency_ms: int | None = None,
+        enable_mask: int = 0x0F,
+        disable_polarity: int = 0x00,
+    ) -> None:
+        super().__init__(
+            ftdi.dev,
+            ftdi.in_ep,
+            ftdi.out_ep,
+            ftdi.wMaxPacketSize,
+            ftdi.interface_index,
+            ftdi.timeout_ms,
+        )
         self.bitrate = real_bitrate(bitrate or 2_500_000)
         # mirror C++ transformation
         self._enable_mask = (~enable_mask << 4) & 0xF0
@@ -92,7 +107,9 @@ class BitBabbler(FTDIDevice):
             # Fallback: scan all USB devices for BitBabbler strings
             base = FTDIDevice.find_any_bitbabbler(serial=serial)
         if base is None:
-            raise RuntimeError("BitBabbler device not found (tried VID:PID 0403:7840 and string scan)")
+            raise RuntimeError(
+                "BitBabbler device not found (tried VID:PID 0403:7840 and string scan)"
+            )
         bb = BitBabbler(base)
         if not bb.init():
             raise RuntimeError("Failed to initialize BitBabbler (MPSSE sync)")
@@ -104,21 +121,23 @@ class BitBabbler(FTDIDevice):
             return False
         # device-specific init
         clk_div = 30_000_000 // self.bitrate - 1
-        cmd = bytes([
-            MPSSE_NO_CLK_DIV5,
-            MPSSE_NO_ADAPTIVE_CLK,
-            MPSSE_NO_3PHASE_CLK,
-            MPSSE_SET_DATABITS_LOW,
-            0x00 | self._disable_pol,         # levels (CLK, DO, CS low)
-            0x0B | self._enable_mask,         # directions (CLK, DO, CS outputs)
-            MPSSE_SET_DATABITS_HIGH,
-            0x00,
-            0x00,
-            MPSSE_SET_CLK_DIVISOR,
-            (clk_div & 0xFF),
-            ((clk_div >> 8) & 0xFF),
-            MPSSE_NO_LOOPBACK,
-        ])
+        cmd = bytes(
+            [
+                MPSSE_NO_CLK_DIV5,
+                MPSSE_NO_ADAPTIVE_CLK,
+                MPSSE_NO_3PHASE_CLK,
+                MPSSE_SET_DATABITS_LOW,
+                0x00 | self._disable_pol,  # levels (CLK, DO, CS low)
+                0x0B | self._enable_mask,  # directions (CLK, DO, CS outputs)
+                MPSSE_SET_DATABITS_HIGH,
+                0x00,
+                0x00,
+                MPSSE_SET_CLK_DIVISOR,
+                (clk_div & 0xFF),
+                ((clk_div >> 8) & 0xFF),
+                MPSSE_NO_LOOPBACK,
+            ]
+        )
         self.write(cmd)
         time.sleep(0.030)
         # purge any residual data
@@ -133,12 +152,14 @@ class BitBabbler(FTDIDevice):
         if nbytes < 1 or nbytes > 65536:
             raise ValueError("nbytes must be 1..65536")
         # Build MPSSE read bytes command (MSB, pos edge)
-        cmd = bytes([
-            MPSSE_DATA_BYTE_IN_POS_MSB,
-            (nbytes - 1) & 0xFF,
-            ((nbytes - 1) >> 8) & 0xFF,
-            MPSSE_SEND_IMMEDIATE,
-        ])
+        cmd = bytes(
+            [
+                MPSSE_DATA_BYTE_IN_POS_MSB,
+                (nbytes - 1) & 0xFF,
+                ((nbytes - 1) >> 8) & 0xFF,
+                MPSSE_SEND_IMMEDIATE,
+            ]
+        )
         self.write(cmd)
         return self.read_data(nbytes)
 
