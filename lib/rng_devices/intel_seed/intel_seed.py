@@ -81,12 +81,20 @@ class IntelSeed:
             raise ValueError("n_bytes must be positive")
 
         buf = (ctypes.c_uint8 * n_bytes)()
-        written = self.lib.rdseed_bytes(buf, n_bytes)
+        max_retries = 3
 
-        if written != n_bytes:
-            raise RDSEEDError(f"RDSEED failed: wrote {written}/{n_bytes} bytes")
+        for attempt in range(max_retries):
+            written = self.lib.rdseed_bytes(buf, n_bytes)
+            if written == n_bytes:
+                return bytes(buf)
+            if written == 0:
+                raise RDSEEDError(
+                    f"RDSEED failed: no bytes generated on attempt {attempt + 1}"
+                )
 
-        return bytes(buf)
+        raise RDSEEDError(
+            f"RDSEED failed: wrote {written}/{n_bytes} bytes after {max_retries} attempts"
+        )
 
     def get_bits(self, n_bits: int) -> bytes:
         """
@@ -243,7 +251,7 @@ _executor = ThreadPoolExecutor(max_workers=1)
 def _get_executor() -> ThreadPoolExecutor:
     """Get the executor, recreating it if it was shut down."""
     global _executor
-    if _executor._shutdown:
+    if getattr(_executor, "_shutdown", False):
         _executor = ThreadPoolExecutor(max_workers=1)
     return _executor
 

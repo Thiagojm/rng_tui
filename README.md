@@ -28,6 +28,43 @@ A modern Terminal User Interface (TUI) application for collecting and analyzing 
 
 ## 🚀 Installation
 
+### 🪟 Windows Installation
+
+#### Hardware Setup
+
+1. **TrueRNG/TrueRNGPro**:
+   - Navigate to `app/tools/installers/TrueRng/` folder
+   - Right-click `TrueRNG.inf` or `TrueRNGpro.inf`
+   - Select "Install" and follow the prompts
+
+2. **BitBabbler**:
+   - Run `vcredist_x64.exe` from `app/tools/installers/BitBabbler/`
+   - Insert BitBabbler device into USB port
+   - Run `zadig-2.8.exe` and install driver for your device
+
+### 🐧 Linux Installation
+
+#### Automated Setup (Recommended)
+```bash
+./app/tools/installers/setup_rng_devices_linux_python.sh
+```
+
+This script will:
+- ✅ Set up udev rules for device access
+- ✅ Create required user groups
+- ✅ Configure device permissions
+
+#### Manual Setup
+```bash
+# Install system dependencies
+sudo apt-get install libusb-1.0-0-dev
+
+# Add user to bit-babbler group
+sudo usermod -aG bit-babbler $USER
+
+# Log out and back in for group changes to take effect
+```
+
 ### Requirements
 
 - Python 3.13+
@@ -37,14 +74,14 @@ A modern Terminal User Interface (TUI) application for collecting and analyzing 
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/rng-tui.git
-cd rng-tui
+git clone https://github.com/Thiagojm/rng_tui.git
+cd rng_tui
 
 # Install with uv
 uv sync
 
 # Run the application
-uv run python rng_tui.py
+uv run rng_tui.py
 ```
 
 ### Alternative: Install with pip
@@ -77,7 +114,7 @@ python rng_tui.py
 
 ```bash
 # Launch the application
-uv run python rng_tui.py
+uv run rng_tui.py
 
 # Or directly
 python rng_tui.py
@@ -142,7 +179,6 @@ Analyzes previously collected CSV data:
 | Sample Size | Bits per sample (must be divisible by 8) | 2048 |
 | Frequency | Seconds between samples | 1.0 |
 | Duration | Collection time in seconds (0 = infinite) | 60 |
-| Output File | CSV export path (auto-generated if empty) | auto |
 
 ### BitBabbler Specific
 
@@ -216,8 +252,13 @@ rng_tui/
 │   ├── main.py            # Main App class
 │   ├── panels.py          # UI panels
 │   ├── config.py          # Device config
-│   └── static/
-│       └── style.css      # Styling
+│   ├── static/
+│   │   └── style.css      # Styling
+│   └── tools/
+│       └── installers/    # Device setup scripts
+│           ├── setup_rng_devices_linux_python.sh
+│           ├── TrueRng/   # Windows drivers
+│           └── BitBabbler/ # Windows drivers
 ├── lib/                   # Core library
 │   ├── __init__.py
 │   ├── services/          # Storage/filename services
@@ -239,7 +280,9 @@ rng_tui/
 │       │   └── bitbabbler.py
 │       └── intel_seed/    # Intel RDSEED CPU
 │           ├── __init__.py
-│           └── intel_seed.py
+│           ├── intel_seed.py
+│           ├── librdseed.so  # Precompiled library
+│           └── librdseed.dll
 ├── tests/                 # Pytest suite
 │   ├── __init__.py
 │   ├── conftest.py        # Test configuration

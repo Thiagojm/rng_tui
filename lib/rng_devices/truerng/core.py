@@ -21,7 +21,7 @@ _executor = ThreadPoolExecutor(max_workers=1)
 def _get_executor() -> ThreadPoolExecutor:
     """Get the executor, recreating it if it was shut down."""
     global _executor
-    if _executor._shutdown:
+    if getattr(_executor, "_shutdown", False):
         _executor = ThreadPoolExecutor(max_workers=1)
     return _executor
 
@@ -96,8 +96,6 @@ def get_bytes(n: int) -> bytes:
 
     ser = serial.Serial(port=port, timeout=10)
     try:
-        if not ser.isOpen():
-            ser.open()
         ser.setDTR(True)
         ser.flushInput()
         data = ser.read(n)

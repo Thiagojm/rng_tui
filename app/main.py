@@ -71,6 +71,8 @@ class RNGCollectorApp(App):
         self.sample_count = 0
         self.total_ones = 0
         self.start_time = None
+        self._loop = None
+        self.pause_button_label = "⏸ Pause"
 
         # Analysis state
         self.analysis_df = None
@@ -278,7 +280,8 @@ class RNGCollectorApp(App):
             self.is_paused = False
             self.sample_count = 0
             self.total_ones = 0
-            self.start_time = asyncio.get_event_loop().time()
+            self._loop = asyncio.get_running_loop()
+            self.start_time = self._loop.time()
 
             # Update UI
             self._update_buttons()
@@ -541,15 +544,18 @@ class RNGCollectorApp(App):
             start_btn.disabled = False
             pause_btn.disabled = True
             stop_btn.disabled = True
+            self.pause_button_label = "⏸ Pause"
         elif self.is_paused:
             start_btn.disabled = True
             pause_btn.disabled = False
             pause_btn.label = "▶ Resume"
+            self.pause_button_label = "▶ Resume"
             stop_btn.disabled = False
         else:
             start_btn.disabled = True
             pause_btn.disabled = False
             pause_btn.label = "⏸ Pause"
+            self.pause_button_label = "⏸ Pause"
             stop_btn.disabled = False
 
     async def _collection_loop(self):
@@ -570,6 +576,7 @@ class RNGCollectorApp(App):
 
         # Cache local references for performance and type safety
         device_module = self.device_module
+        loop = self._loop
         start_time = self.start_time
         output_file = self.output_file
 
@@ -603,7 +610,7 @@ class RNGCollectorApp(App):
                 ) * 100
 
                 # Calculate elapsed time
-                elapsed = asyncio.get_event_loop().time() - start_time
+                elapsed = loop.time() - start_time
                 hours = int(elapsed // 3600)
                 minutes = int((elapsed % 3600) // 60)
                 seconds = int(elapsed % 60)
