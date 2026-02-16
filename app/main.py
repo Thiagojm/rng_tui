@@ -1,7 +1,6 @@
 import asyncio
 import os
 import traceback
-from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -13,7 +12,6 @@ from textual.containers import (
 )
 from textual.widgets import (
     Button,
-    DataTable,
     DirectoryTree,
     Footer,
     Header,
@@ -39,7 +37,7 @@ from .config import DEVICES
 from .panels import (
     AnalysisPanel,
     ConfigPanel,
-    DataTablePanel,
+    LivePlotPanel,
     StatsPanel,
 )
 
@@ -71,12 +69,17 @@ class RNGCollectorApp(App):
         self.sample_count = 0
         self.total_ones = 0
         self.start_time = None
-        self._loop = None
+        self._loop: asyncio.AbstractEventLoop | None = None
         self.pause_button_label = "⏸ Pause"
 
         # Analysis state
         self.analysis_df = None
         self.selected_file_path = None
+
+        # Live plot data
+        self.x_data: list[int] = []
+        self.y_data: list[float] = []
+        self.cumulative_ones: int = 0
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -88,7 +91,7 @@ class RNGCollectorApp(App):
                     with VerticalScroll():
                         yield ConfigPanel()
                     yield StatsPanel()
-                yield DataTablePanel()
+                yield LivePlotPanel()
 
             # Tab 2: Statistical Analysis (new functionality)
             with TabPane("Analysis", id="analysis"):
@@ -296,6 +299,9 @@ class RNGCollectorApp(App):
             self.is_paused = False
             self.sample_count = 0
             self.total_ones = 0
+            self.cumulative_ones = 0
+            self.x_data.clear()
+            self.y_data.clear()
             self._loop = asyncio.get_running_loop()
             self.start_time = self._loop.time()
 
@@ -304,9 +310,9 @@ class RNGCollectorApp(App):
             stats = self.query_one(StatsPanel)
             stats.is_collecting = True
 
-            # Clear table
-            table = self.query_one("#data_table", DataTable)
-            table.clear()
+            # Clear plot for new collection
+            plot_panel = self.query_one(LivePlotPanel)
+            plot_panel.clear_plot()
 
             # Start collection
             self.collection_task = asyncio.create_task(self._collection_loop())
@@ -607,11 +613,11 @@ class RNGCollectorApp(App):
             return
 
         stats_panel = self.query_one(StatsPanel)
-        data_table = self.query_one(DataTablePanel)
+        plot_panel = self.query_one(LivePlotPanel)
 
         # Cache local references for performance and type safety
         device_module = self.device_module
-        loop = self._loop
+        loop: asyncio.AbstractEventLoop = self._loop  # type: ignore[assignment]
         start_time = self.start_time
         output_file = self.output_file
 
@@ -622,7 +628,6 @@ class RNGCollectorApp(App):
                     continue
 
                 # Collect sample
-                timestamp = datetime.now()
                 if self.device_key == "bitbabbler_rng":
                     data = await device_module.get_bytes_async(
                         self.sample_bytes, self.folds
@@ -632,12 +637,26 @@ class RNGCollectorApp(App):
 
                 # Calculate statistics
                 ones = int.from_bytes(data, "big").bit_count()
-                zeros = len(data) * 8 - ones
-                ratio = (ones / (ones + zeros)) * 100
+                ratio = (ones / (len(data) * 8)) * 100
 
                 # Update counters
                 self.sample_count += 1
                 self.total_ones += ones
+                self.cumulative_ones += ones
+
+                # Calculate cumulative Z-score
+                sample_count = self.sample_count
+                block_bits = self.sample_bytes * 8
+                expected_mean = 0.5 * block_bits
+                expected_std_dev = np.sqrt(block_bits * 0.25)
+                cumulative_mean = self.cumulative_ones / sample_count
+                z_score = (cumulative_mean - expected_mean) / (
+                    expected_std_dev / np.sqrt(sample_count)
+                )
+
+                # Update plot data
+                self.x_data.append(sample_count)
+                self.y_data.append(z_score)
 
                 # Calculate running average
                 running_avg = (
@@ -662,16 +681,12 @@ class RNGCollectorApp(App):
                     progress = int((elapsed / self.duration) * 100)
                     stats_panel.update_progress(progress, 100)
 
-                # Add to table
-                hex_preview = data.hex()[:9] + "..."
-                data_table.add_sample(
-                    self.sample_count,
-                    timestamp.strftime("%H:%M:%S.%f")[:-3],
-                    len(data),
-                    ones,
-                    zeros,
+                # Update plot and table
+                plot_panel.update_plot(
+                    self.x_data,
+                    self.y_data,
                     ratio,
-                    hex_preview,
+                    z_score,
                 )
 
                 # Write to CSV using storage service

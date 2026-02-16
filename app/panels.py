@@ -8,7 +8,6 @@ from textual.containers import (
 from textual.reactive import reactive
 from textual.widgets import (
     Button,
-    DataTable,
     DirectoryTree,
     Input,
     Label,
@@ -16,6 +15,7 @@ from textual.widgets import (
     Select,
     Static,
 )
+from textual_plot import PlotWidget
 
 from .config import DEVICES
 
@@ -113,44 +113,28 @@ class ConfigPanel(VerticalGroup):
             folds_select.disabled = event.value != "bitbabbler_rng"
 
 
-class DataTablePanel(VerticalGroup):
-    """Panel displaying collected data in a table."""
+class LivePlotPanel(VerticalGroup):
+    """Panel with live Z-Score plot."""
 
     def compose(self) -> ComposeResult:
-        yield Label("📋 Collected Data", classes="title")
-        table = DataTable(id="data_table")
-        table.add_column("#", width=4)
-        table.add_column("Time", width=9)
-        table.add_column("Bytes", width=5)
-        table.add_column("Ones", width=4)
-        table.add_column("Zeros", width=4)
-        table.add_column("Ratio%", width=7)
-        table.add_column("Hex", width=12)
-        yield table
+        yield Label("📈 Live Z-Score Graph", classes="title")
+        yield PlotWidget(id="live_plot")
 
-    def add_sample(
+    def clear_plot(self) -> None:
+        """Clear the plot for a new collection."""
+        plot = self.query_one("#live_plot", PlotWidget)
+        plot.plot([], [])
+
+    def update_plot(
         self,
-        sample_num: int,
-        timestamp: str,
-        bytes_count: int,
-        ones: int,
-        zeros: int,
-        ratio: float,
-        hex_preview: str,
-    ):
-        """Add a sample row to the table."""
-        table = self.query_one("#data_table", DataTable)
-        table.add_row(
-            str(sample_num),
-            timestamp,
-            str(bytes_count),
-            str(ones),
-            str(zeros),
-            f"{ratio:.2f}",
-            hex_preview,
-        )
-        # Auto-scroll to bottom
-        table.scroll_end()
+        x_data: list[int],
+        y_data: list[float],
+        current_ratio: float,
+        current_z: float,
+    ) -> None:
+        """Update the plot with new data."""
+        plot = self.query_one("#live_plot", PlotWidget)
+        plot.plot(x_data, y_data)
 
 
 class AnalysisPanel(VerticalGroup):

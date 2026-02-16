@@ -1,3 +1,18 @@
+## [Unreleased] - 2026-02-16-17:02
+
+### Added
+- Live Z-Score graph in Collect tab (replaces DataTable)
+- Real-time cumulative Z-Score calculation during collection
+- `textual-plotext` dependency to pyproject.toml
+- `plotit_textual_plot.py` - mock live plot using textual-plot
+- `plotit_plotext.py` - mock live plot using textual-plotext
+
+### Changed
+- Replaced `DataTablePanel` with `LivePlotPanel` in Collect tab
+
+### Removed
+- Old DataTable from Collect tab (replaced with live graph)
+
 ## [Unreleased] - 2026-02-16
 
 ### Changed
