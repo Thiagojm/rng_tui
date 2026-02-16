@@ -1,4 +1,10 @@
-## [Unreleased] - 2026-02-14
+## [Unreleased] - 2026-02-16
+
+### Changed
+- Statistics field now shows cumulative Z-score (last row) instead of mean Z-score
+- Export to Excel now auto-analyzes the file if not already analyzed
+- Export Excel button is now enabled by default
+- Statistics field is now cleared when selecting a different file
 
 ### Fixed
 - Replaced deprecated `asyncio.get_event_loop().time()` with `loop.time()` in `app/main.py`

@@ -202,7 +202,6 @@ class AnalysisPanel(VerticalGroup):
                         "📊 Export Excel",
                         id="export_btn",
                         variant="success",
-                        disabled=True,
                     )
 
                 # Validation message

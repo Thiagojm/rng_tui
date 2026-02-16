@@ -107,10 +107,16 @@ class RNGCollectorApp(App):
     ) -> None:
         """Handle file selection from DirectoryTree."""
         self.selected_file_path = str(event.path)
+        self.analysis_df = None
 
         # Update input field
         panel = self.query_one(AnalysisPanel)
         panel.query_one("#analysis_file_input", Input).value = self.selected_file_path
+
+        # Clear statistics display
+        panel.query_one("#stats_display", Static).update(
+            "No data analyzed yet. Select a file and click Analyze."
+        )
 
         # Validate file
         self.validate_selected_file()
@@ -445,9 +451,6 @@ class RNGCollectorApp(App):
             # Update statistics display
             self.update_statistics_display(self.analysis_df, bits)
 
-            # Enable export button
-            panel.query_one("#export_btn", Button).disabled = False
-
             self.notify(
                 f"Analysis complete! {len(self.analysis_df)} samples analyzed.",
                 severity="information",
@@ -494,7 +497,7 @@ class RNGCollectorApp(App):
         # Z-score statistics
         z_scores = df["z_test"]
         max_z = z_scores.abs().max()
-        mean_z = z_scores.mean()
+        cumulative_z = z_scores.iloc[-1]
 
         # Test for randomness (rough check)
         within_95 = (z_scores.abs() <= 1.96).sum()
@@ -509,15 +512,23 @@ class RNGCollectorApp(App):
         # Compact statistics display
         stats.update(
             f"Samples: {total_samples} | Bits: {bits} | Mean: {mean_ones:.1f} (Exp: {expected_mean:.1f}) | "
-            f"Z-Score: {mean_z:.3f} (max {max_z:.3f}) | 95% CI: {percent_95:.0f}% | {assessment}"
+            f"Z-Score: {cumulative_z:.3f} (max {max_z:.3f}) | 95% CI: {percent_95:.0f}% | {assessment}"
         )
 
     async def action_export_excel(self):
         """Export analyzed data to Excel with detailed error handling."""
         if self.analysis_df is None or len(self.analysis_df) == 0:
             self.notify(
-                "No data to export. Run analysis first.",
-                severity="warning",
+                "Analyzing file before export...",
+                severity="information",
+                timeout=1.0,
+            )
+            await self.action_analyze()
+
+        if self.analysis_df is None or len(self.analysis_df) == 0:
+            self.notify(
+                "Analysis failed. Cannot export.",
+                severity="error",
                 timeout=1.0,
             )
             return

@@ -22,7 +22,7 @@ Every time you make **any** persistent change to the codebase (new file, modifie
 2. Use this exact format:
 
 ```markdown
-## [Unreleased] - YYYY-MM-DD-HH:MM
+## [Unreleased] - YYYY-MM-DD-HH:MM (Year-Month-Day-Hour-Minutes)
 
 ### Added
 - Short description (file(s) affected)
