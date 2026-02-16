@@ -15,7 +15,7 @@ from textual.widgets import (
     Select,
     Static,
 )
-from textual_plot import PlotWidget
+from textual_plot import HiResMode, PlotWidget
 
 from .config import DEVICES
 
@@ -123,7 +123,7 @@ class LivePlotPanel(VerticalGroup):
     def clear_plot(self) -> None:
         """Clear the plot for a new collection."""
         plot = self.query_one("#live_plot", PlotWidget)
-        plot.plot([], [])
+        plot.clear()
 
     def update_plot(
         self,
@@ -134,7 +134,13 @@ class LivePlotPanel(VerticalGroup):
     ) -> None:
         """Update the plot with new data."""
         plot = self.query_one("#live_plot", PlotWidget)
-        plot.plot(x_data, y_data)
+        plot.clear()
+        plot.plot(
+            x_data,
+            y_data,
+            hires_mode=HiResMode.BRAILLE,
+            line_style="bright_yellow",
+        )
 
 
 class AnalysisPanel(VerticalGroup):
