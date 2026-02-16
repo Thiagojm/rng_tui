@@ -135,12 +135,24 @@ class LivePlotPanel(VerticalGroup):
         """Update the plot with new data."""
         plot = self.query_one("#live_plot", PlotWidget)
         plot.clear()
+
+        # Plot main Z-Score data
         plot.plot(
             x_data,
             y_data,
             hires_mode=HiResMode.BRAILLE,
             line_style="bright_yellow",
         )
+
+        # Plot reference lines at ±1.96 (95% confidence) using scatter
+        if len(x_data) > 0:
+            x_ref = list(x_data)
+            plot.scatter(x_ref, [1.96] * len(x_ref), marker="-", marker_style="green")
+            plot.scatter(x_ref, [-1.96] * len(x_ref), marker="-", marker_style="green")
+
+        # Set axis labels
+        plot.set_xlabel("Samples")
+        plot.set_ylabel("Z-Score")
 
 
 class AnalysisPanel(VerticalGroup):

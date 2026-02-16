@@ -3,6 +3,9 @@
 ### Added
 - Live Z-Score graph in Collect tab (replaces DataTable)
 - Real-time cumulative Z-Score calculation during collection
+- HiResMode.BRAILLE for high-resolution plotting
+- Reference lines at ±1.96 (95% confidence)
+- Axis labels: "Samples" (X) and "Z-Score" (Y)
 - `textual-plotext` dependency to pyproject.toml
 - `plotit_textual_plot.py` - mock live plot using textual-plot
 - `plotit_plotext.py` - mock live plot using textual-plotext
@@ -12,6 +15,7 @@
 
 ### Removed
 - Old DataTable from Collect tab (replaced with live graph)
+- Legend from live plot (was getting in the way)
 
 ## [Unreleased] - 2026-02-16
 

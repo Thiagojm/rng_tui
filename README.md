@@ -8,6 +8,7 @@ A modern Terminal User Interface (TUI) application for collecting and analyzing 
 
 - **Multiple RNG Sources**: Support for hardware RNG devices and software fallbacks
 - **Real-time Statistics**: Live display of entropy quality metrics
+- **Live Z-Score Graph**: Real-time visualization of cumulative Z-Score with confidence intervals
 - **Interactive TUI**: Rich terminal interface with tabs for Collection and Analysis
 - **Statistical Analysis**: Z-score calculations, p-values, and randomness assessment
 - **File Browser**: Navigate and select CSV files for analysis
@@ -141,9 +142,12 @@ Collects RNG data with real-time statistics:
    - Progress bar for timed collections
    - Start/Pause/Stop controls
 
-3. **Data Table** (Bottom)
-   - Live data display
-   - Sample number, timestamp, bit counts, hex preview
+3. **Live Graph** (Bottom)
+   - Real-time Z-Score visualization
+   - X-axis: Number of samples collected
+   - Y-axis: Cumulative Z-Score
+   - Reference lines at ±1.96 (95% confidence interval)
+   - High-resolution Braille mode for detailed plotting
 
 #### **Analysis Tab**
 Analyzes previously collected CSV data:
