@@ -124,6 +124,7 @@ class RNGCollectorApp(App):
             self.notify(
                 f"Auto-detected: {bits} bits, {interval}s interval",
                 severity="information",
+                timeout=1.0,
             )
         except ValueError:
             pass
@@ -141,7 +142,7 @@ class RNGCollectorApp(App):
         elif button_id == "refresh_tree_btn":
             tree = self.query_one("#file_tree", DirectoryTree)
             tree.reload()
-            self.notify("File tree refreshed", severity="information")
+            self.notify("File tree refreshed", severity="information", timeout=1.0)
         elif button_id == "analyze_btn":
             await self.action_analyze()
         elif button_id == "export_btn":
@@ -161,7 +162,7 @@ class RNGCollectorApp(App):
 
         # Validate device selection
         if device_key_raw is None or device_key_raw == "":
-            self.notify("Please select a device", severity="error")
+            self.notify("Please select a device", severity="error", timeout=1.0)
             return
         device_key: str = str(device_key_raw)
 
@@ -169,25 +170,31 @@ class RNGCollectorApp(App):
         try:
             bits = int(bits_str)
             if bits % 8 != 0:
-                self.notify("Bits must be divisible by 8", severity="error")
+                self.notify(
+                    "Bits must be divisible by 8", severity="error", timeout=1.0
+                )
                 return
             self.sample_bytes = bits // 8
 
             self.frequency = float(freq_str)
             if self.frequency <= 0:
-                self.notify("Frequency must be positive", severity="error")
+                self.notify("Frequency must be positive", severity="error", timeout=1.0)
                 return
 
             self.duration = int(duration_str)
             if self.duration < 0:
-                self.notify("Duration must be non-negative", severity="error")
+                self.notify(
+                    "Duration must be non-negative", severity="error", timeout=1.0
+                )
                 return
 
             # Set device
             self.device_key = device_key
             device_info = DEVICES.get(device_key)
             if device_info is None:
-                self.notify(f"Unknown device: {device_key}", severity="error")
+                self.notify(
+                    f"Unknown device: {device_key}", severity="error", timeout=1.0
+                )
                 return
             self.device_module = device_info["module"]
 
@@ -241,16 +248,19 @@ class RNGCollectorApp(App):
                         f"Device {DEVICES[device_key]['name']} not available. "
                         "The USB device may be busy. Try waiting a few seconds or reconnecting.",
                         severity="error",
+                        timeout=1.0,
                     )
                 elif error_msg:
                     self.notify(
                         f"Device {DEVICES[device_key]['name']} not available: {error_msg}",
                         severity="error",
+                        timeout=1.0,
                     )
                 else:
                     self.notify(
                         f"Device {DEVICES[device_key]['name']} not available",
                         severity="error",
+                        timeout=1.0,
                     )
                 return
 
@@ -296,11 +306,13 @@ class RNGCollectorApp(App):
             self.collection_task = asyncio.create_task(self._collection_loop())
 
             self.notify(
-                f"Started collection to {self.output_file}", severity="information"
+                f"Started collection to {self.output_file}",
+                severity="information",
+                timeout=1.0,
             )
 
         except ValueError as e:
-            self.notify(f"Invalid input: {e}", severity="error")
+            self.notify(f"Invalid input: {e}", severity="error", timeout=1.0)
 
     async def action_pause(self):
         """Pause/resume data collection."""
@@ -310,9 +322,9 @@ class RNGCollectorApp(App):
         self.is_paused = not self.is_paused
 
         if self.is_paused:
-            self.notify("Collection paused", severity="warning")
+            self.notify("Collection paused", severity="warning", timeout=1.0)
         else:
-            self.notify("Collection resumed", severity="information")
+            self.notify("Collection resumed", severity="information", timeout=1.0)
 
         self._update_buttons()
 
@@ -336,7 +348,11 @@ class RNGCollectorApp(App):
             try:
                 if self.device_key == "bitbabbler_rng":
                     # Show feedback to user before closing
-                    self.notify("Closing BitBabbler device...", severity="information")
+                    self.notify(
+                        "Closing BitBabbler device...",
+                        severity="information",
+                        timeout=1.0,
+                    )
                     # Close BitBabbler cached device
                     bitbabbler_rng.close()
                     # Shorter delay for better responsiveness (200ms instead of 500ms)
@@ -365,6 +381,7 @@ class RNGCollectorApp(App):
         self.notify(
             f"Collection stopped. Data saved to {self.output_file}",
             severity="information",
+            timeout=1.0,
         )
 
     def validate_selected_file(self) -> bool:
@@ -410,7 +427,7 @@ class RNGCollectorApp(App):
         # Type guard - selected_file_path must not be None after validation
         file_path = self.selected_file_path
         if file_path is None:
-            self.notify("No file selected for analysis", severity="error")
+            self.notify("No file selected for analysis", severity="error", timeout=1.0)
             return
 
         panel = self.query_one(AnalysisPanel)
@@ -434,10 +451,11 @@ class RNGCollectorApp(App):
             self.notify(
                 f"Analysis complete! {len(self.analysis_df)} samples analyzed.",
                 severity="information",
+                timeout=1.0,
             )
 
         except Exception as e:
-            self.notify(f"Analysis failed: {e}", severity="error")
+            self.notify(f"Analysis failed: {e}", severity="error", timeout=1.0)
 
     def add_zscore_with_pvalues(
         self, df: pd.DataFrame, block_bits: int
@@ -497,11 +515,15 @@ class RNGCollectorApp(App):
     async def action_export_excel(self):
         """Export analyzed data to Excel with detailed error handling."""
         if self.analysis_df is None or len(self.analysis_df) == 0:
-            self.notify("No data to export. Run analysis first.", severity="warning")
+            self.notify(
+                "No data to export. Run analysis first.",
+                severity="warning",
+                timeout=1.0,
+            )
             return
 
         if not self.selected_file_path:
-            self.notify("No file selected.", severity="error")
+            self.notify("No file selected.", severity="error", timeout=1.0)
             return
 
         panel = self.query_one(AnalysisPanel)
@@ -511,7 +533,9 @@ class RNGCollectorApp(App):
             interval = int(panel.query_one("#analysis_interval_input", Input).value)
 
             self.notify(
-                f"Exporting {len(self.analysis_df)} samples...", severity="information"
+                f"Exporting {len(self.analysis_df)} samples...",
+                severity="information",
+                timeout=1.0,
             )
 
             # Use the function from storage module
@@ -522,16 +546,16 @@ class RNGCollectorApp(App):
             self.notify(
                 f"Excel exported successfully!\nSaved to: {excel_path}",
                 severity="information",
-                timeout=5,
+                timeout=1.0,
             )
 
         except ValueError as e:
-            self.notify(f"Invalid parameters: {e}", severity="error")
+            self.notify(f"Invalid parameters: {e}", severity="error", timeout=1.0)
         except ImportError as e:
-            self.notify(f"Missing dependency: {e}", severity="error")
+            self.notify(f"Missing dependency: {e}", severity="error", timeout=1.0)
         except Exception as e:
             error_detail = str(e)[:100]
-            self.notify(f"Export failed: {error_detail}", severity="error", timeout=8)
+            self.notify(f"Export failed: {error_detail}", severity="error", timeout=1.0)
             print(f"Excel export error:\n{traceback.format_exc()}")
 
     def _update_buttons(self):
@@ -562,13 +586,13 @@ class RNGCollectorApp(App):
         """Main data collection loop."""
         # Type guards - these should be set before calling this method
         if self.device_module is None:
-            self.notify("Device module not initialized", severity="error")
+            self.notify("Device module not initialized", severity="error", timeout=1.0)
             return
         if self.start_time is None:
-            self.notify("Start time not set", severity="error")
+            self.notify("Start time not set", severity="error", timeout=1.0)
             return
         if self.output_file is None:
-            self.notify("Output file not set", severity="error")
+            self.notify("Output file not set", severity="error", timeout=1.0)
             return
 
         stats_panel = self.query_one(StatsPanel)
@@ -654,5 +678,5 @@ class RNGCollectorApp(App):
         except asyncio.CancelledError:
             pass
         except Exception as e:
-            self.notify(f"Error during collection: {e}", severity="error")
+            self.notify(f"Error during collection: {e}", severity="error", timeout=1.0)
             await self.action_stop()
